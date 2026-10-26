@@ -1,0 +1,9 @@
+{
+  "sources": [
+    {"name": "TechCrunch Venture", "url": "https://techcrunch.com/category/venture/feed/"},
+    {"name": "Crunchbase News", "url": "https://news.crunchbase.com/feed/"}
+  ],
+  "keywords": ["融资", "创投", "风投", "种子轮", "天使轮", "funding", "venture", "seed round", "series a", "series b", "raises", "fundraise"],
+  "lookback_hours": 24,
+  "max_items": 10
+}

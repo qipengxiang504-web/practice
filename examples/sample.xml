@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>虚构示例资讯源</title>
+    <link>https://example.com/</link>
+    <description>仅供离线测试，全部为虚构新闻。</description>
+    <item>
+      <title>【示例】某机器人公司完成 A 轮融资</title>
+      <link>https://example.com/robotics-series-a?utm_source=demo</link>
+      <description><![CDATA[<p>虚构新闻：某机器人公司完成融资，计划扩充研发团队。</p>]]></description>
+      <pubDate>Thu, 01 Jan 2026 08:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>【示例】同一融资新闻的重复链接</title>
+      <link>https://example.com/robotics-series-a?utm_source=another</link>
+      <description>这条融资信息应被去重。</description>
+      <pubDate>Thu, 01 Jan 2026 07:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>【示例】某基金公布新的创投计划</title>
+      <link>https://example.com/new-fund</link>
+      <description>虚构新闻：某创投基金公布新计划，关注早期企业。</description>
+      <pubDate>Thu, 01 Jan 2026 06:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>【示例】今日天气晴朗</title>
+      <link>https://example.com/weather</link>
+      <description>无关资讯，应被关键词筛掉。</description>
+      <pubDate>Thu, 01 Jan 2026 05:00:00 +0800</pubDate>
+    </item>
+  </channel>
+</rss>
