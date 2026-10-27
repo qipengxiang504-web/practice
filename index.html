@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>教学管理系统 · 签到 / 作业统计 / 学生与班级管理</title>
+<style>
+:root{
+  --bg:#eef2f9; --bg-2:#f7f9fd; --card:#ffffff; --ink:#0f1a2e; --ink-2:#33415c;
+  --muted:#6b7a94; --line:#e2e8f2; --line-2:#eef2f8;
+  --primary:#2f6bed; --primary-600:#2a5fd6; --primary-050:#eaf1fe; --primary-100:#dbe7fd;
+  --ok:#12a870; --ok-050:#e6f6ef; --warn:#e08a00; --warn-050:#fdf3e2; --danger:#e5484d;
+  --danger-050:#fdecec; --info:#6b5bd6; --info-050:#efedfd;
+  --r-lg:16px; --r-md:12px; --r-sm:9px;
+  --sh-1:0 1px 2px rgba(15,26,46,.05), 0 1px 3px rgba(15,26,46,.06);
+  --sh-2:0 6px 20px rgba(15,26,46,.08);
+  --sidebar-w:236px; --topbar-h:64px;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Noto Sans SC",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+a{color:var(--primary);text-decoration:none}
+h1,h2,h3,h4{margin:0;font-weight:650;letter-spacing:.01em}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#cbd5e6;border-radius:8px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:#b3c0d8;background-clip:content-box}
+
+/* ---------- layout ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{
+  width:var(--sidebar-w);flex:0 0 var(--sidebar-w);background:#0e1930;color:#c8d4ec;
+  display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:60;
+}
+.brand{display:flex;gap:11px;align-items:center;padding:18px 18px 16px;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand-mark{
+  width:38px;height:38px;border-radius:11px;flex:0 0 38px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#4d8bff,#2f6bed);color:#fff;box-shadow:0 6px 16px rgba(47,107,237,.4);
+}
+.brand-txt b{display:block;color:#fff;font-size:15px;letter-spacing:.02em}
+.brand-txt span{display:block;font-size:11.5px;color:#8ea1c4;margin-top:1px}
+.nav{padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.nav-lbl{font-size:11px;color:#6d80a6;letter-spacing:.14em;padding:12px 10px 6px}
+.nav-item{
+  display:flex;gap:10px;align-items:center;padding:9.5px 11px;border-radius:10px;
+  color:#b9c6e0;cursor:pointer;border:1px solid transparent;background:none;text-align:left;width:100%;
+  transition:background .15s,color .15s;
+}
+.nav-item svg{flex:0 0 18px;opacity:.85}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:linear-gradient(90deg,rgba(47,107,237,.32),rgba(47,107,237,.12));color:#fff;border-color:rgba(120,170,255,.28)}
+.nav-item.active svg{opacity:1;color:#9dc0ff}
+.nav-item .cnt{margin-left:auto;font-size:11px;color:#8ea1c4;background:rgba(255,255,255,.08);padding:1px 7px;border-radius:20px}
+.sidebar-foot{margin-top:auto;padding:14px 16px;border-top:1px solid rgba(255,255,255,.07);font-size:11.5px;color:#7d90b4}
+.sidebar-foot .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#38d39f;margin-right:6px;box-shadow:0 0 0 3px rgba(56,211,159,.16)}
+
+.main{flex:1;min-width:0;margin-left:var(--sidebar-w)}
+.topbar{
+  height:var(--topbar-h);background:rgba(255,255,255,.86);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;
+  padding:0 22px;position:sticky;top:0;z-index:40;
+}
+.hamb{display:none;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;align-items:center;justify-content:center}
+.tb-title b{display:block;font-size:16px}
+.tb-title span{display:block;font-size:12px;color:var(--muted);margin-top:-2px}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);background:var(--bg-2);border:1px solid var(--line);padding:5px 10px;border-radius:20px;white-space:nowrap}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+.view{padding:22px 22px 60px;max-width:1320px}
+
+/* ---------- primitives ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:8.5px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink-2);
+  cursor:pointer;font-weight:560;white-space:nowrap;transition:background .15s,border-color .15s,box-shadow .15s,transform .05s;
+}
+.btn:hover{background:var(--bg-2);border-color:#d3dcec}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:16px;height:16px}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 3px 10px rgba(47,107,237,.28)}
+.btn.primary:hover{background:var(--primary-600);border-color:var(--primary-600)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--bg-2)}
+.btn.danger{color:var(--danger);border-color:#f2c9c9;background:#fff}
+.btn.danger:hover{background:var(--danger-050)}
+.btn.sm{padding:5.5px 10px;font-size:12.5px;border-radius:8px}
+.btn.sm svg{width:14px;height:14px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12.5px;color:var(--muted);font-weight:560}
+.field .hint{font-size:11.5px;color:var(--muted)}
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=search],select,textarea{
+  width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-050)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.form-grid .span-2{grid-column:1/-1}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);overflow:hidden}
+.panel + .panel,.grid + .panel,.panel + .grid,.grid + .grid{margin-top:18px}
+.panel-hd{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line-2);flex-wrap:wrap}
+.panel-hd .ttl{font-size:14.5px;font-weight:650}
+.panel-hd .sub{font-size:12px;color:var(--muted)}
+.panel-hd .right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.panel-bd{padding:18px}
+.panel-bd.tight{padding:0}
+.section-title{font-size:12px;letter-spacing:.1em;color:var(--muted);font-weight:650;margin:26px 2px 10px}
+.section-title:first-child{margin-top:0}
+
+.grid{display:grid;gap:14px}
+.grid.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.grid.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.grid.g-2-1{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}
+
+/* stat card = 数字面板 */
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px 16px;box-shadow:var(--sh-1);position:relative;overflow:hidden}
+.stat::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--primary));opacity:.9}
+.stat .k{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.stat .v{font-size:30px;font-weight:750;letter-spacing:-.01em;line-height:1.25;margin-top:5px;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:14px;font-weight:600;color:var(--muted);margin-left:3px}
+.stat .d{font-size:12px;color:var(--muted);margin-top:3px}
+.stat.ok{--accent:var(--ok)} .stat.warn{--accent:var(--warn)} .stat.danger{--accent:var(--danger)} .stat.info{--accent:var(--info)}
+.stat.compact{padding:12px 14px}
+.stat.compact .v{font-size:23px}
+
+.ring-wrap{display:flex;align-items:center;gap:16px}
+.ring{--p:0;--c:var(--primary);width:104px;height:104px;flex:0 0 104px;border-radius:50%;
+  background:conic-gradient(var(--c) calc(var(--p)*1%), var(--line) 0);
+  display:grid;place-items:center;position:relative}
+.ring::before{content:"";position:absolute;inset:11px;border-radius:50%;background:var(--card)}
+.ring b{position:relative;font-size:21px;font-weight:750;font-variant-numeric:tabular-nums}
+.ring b i{font-size:12px;font-style:normal;color:var(--muted);margin-left:1px}
+.legend{display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--ink-2);min-width:0}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:middle}
+.legend .n{margin-left:auto;font-weight:650;font-variant-numeric:tabular-nums;padding-left:14px}
+
+/* tables */
+.tbl-wrap{overflow:auto;max-height:none}
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+table.tbl th,table.tbl td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line-2);white-space:nowrap;vertical-align:middle}
+table.tbl th{position:sticky;top:0;z-index:1;background:#f6f8fc;color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.02em}
+table.tbl tbody tr:hover{background:#fafcff}
+table.tbl td.num,table.tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
+table.tbl .sid{font-family:var(--mono);font-size:12.5px;color:var(--ink-2)}
+table.tbl .nm{font-weight:600}
+.empty{padding:34px 18px;text-align:center;color:var(--muted)}
+.empty svg{opacity:.5;margin-bottom:8px}
+.overflow-note{font-size:11.5px;color:var(--muted);padding:8px 14px;border-top:1px solid var(--line-2);background:#fbfcfe}
+
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2.5px 9px;border-radius:20px;white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{color:#0d8a5d;background:var(--ok-050)}
+.badge.warn{color:#a3660a;background:var(--warn-050)}
+.badge.danger{color:#c0363b;background:var(--danger-050)}
+.badge.info{color:#5646bd;background:var(--info-050)}
+.badge.muted{color:var(--muted);background:#f0f3f9}
+.badge.plain::before{display:none}
+
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);background:#f3f6fb;border:1px solid var(--line);padding:3px 9px;border-radius:8px}
+.mono{font-family:var(--mono)}
+
+.bar{height:8px;border-radius:20px;background:var(--line-2);overflow:hidden;margin-top:8px}
+.bar > i{display:block;height:100%;border-radius:20px;background:var(--primary)}
+.bar.ok > i{background:var(--ok)} .bar.warn > i{background:var(--warn)} .bar.danger > i{background:var(--danger)}
+
+.list{display:flex;flex-direction:column}
+.list-row{display:flex;gap:12px;align-items:center;padding:11px 18px;border-bottom:1px solid var(--line-2)}
+.list-row:last-child{border-bottom:0}
+.list-row .g{flex:1;min-width:0}
+.list-row .t{font-weight:600;font-size:13px}
+.list-row .s{font-size:12px;color:var(--muted)}
+.avatar{width:32px;height:32px;border-radius:9px;flex:0 0 32px;display:grid;place-items:center;background:var(--primary-050);color:var(--primary);font-weight:700;font-size:12.5px}
+
+/* drop zone */
+.drop{border:1.5px dashed #c9d6ea;border-radius:var(--r-md);padding:26px 18px;text-align:center;background:#fbfdff;transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--primary);background:var(--primary-050)}
+.drop svg{color:var(--primary);opacity:.85}
+.drop .t{font-weight:600;margin-top:8px}
+.drop .s{font-size:12.5px;color:var(--muted);margin-top:2px}
+.hidden-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+/* QR */
+.qr-card{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.qr-box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;box-shadow:var(--sh-1)}
+.qr-box img{width:228px;height:228px;display:block;image-rendering:pixelated;border-radius:6px}
+.qr-box .cap{font-size:12px;color:var(--muted);margin-top:8px}
+.qr-side{flex:1;min-width:250px}
+
+.phone{width:290px;border-radius:30px;background:#101827;padding:11px 11px 14px;box-shadow:var(--sh-2);color:#e7ecf6}
+.phone .screen{background:#f2f5fb;border-radius:22px;overflow:hidden;color:var(--ink);min-height:430px;display:flex;flex-direction:column}
+.phone .notch{height:22px;background:#101827;display:grid;place-items:center}
+.phone .notch i{width:74px;height:7px;border-radius:8px;background:#2a3550}
+.ph-hd{padding:12px 15px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:9px;font-weight:650;font-size:13px}
+.ph-hd .logo{width:26px;height:26px;border-radius:8px;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:12px}
+.ph-bd{padding:15px;display:flex;flex-direction:column;gap:13px;flex:1}
+.ph-bd .lab{font-size:12px;color:var(--muted);font-weight:600}
+.ph-bd select,.ph-bd input{background:#fff}
+.scan-frame{position:relative;height:118px;border-radius:14px;background:#0d1526;display:grid;place-items:center;overflow:hidden}
+.scan-frame .sq{width:84px;height:84px;border:2px solid #4d8bff;border-radius:10px}
+.scan-frame .line{position:absolute;left:18px;right:18px;height:2px;background:linear-gradient(90deg,transparent,#6ea8ff,transparent);animation:scan 2.1s ease-in-out infinite}
+@keyframes scan{0%,100%{top:20px}50%{top:94px}}
+.ph-ok{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;text-align:center}
+.ph-ok .ic{width:62px;height:62px;border-radius:50%;background:var(--ok-050);color:var(--ok);display:grid;place-items:center}
+
+.tabs{display:flex;gap:4px;background:#f1f4fa;border:1px solid var(--line);padding:4px;border-radius:11px;width:max-content;max-width:100%;flex-wrap:wrap}
+.tab{padding:7px 14px;border-radius:8px;border:0;background:none;color:var(--muted);cursor:pointer;font-weight:560;font-size:13px}
+.tab:hover{color:var(--ink)}
+.tab.active{background:#fff;color:var(--primary);box-shadow:var(--sh-1)}
+
+.toasts{position:fixed;right:18px;bottom:18px;z-index:200;display:flex;flex-direction:column;gap:9px;max-width:min(360px,86vw)}
+.toast{background:#101827;color:#eaf0fa;padding:11px 14px;border-radius:12px;box-shadow:var(--sh-2);font-size:13px;display:flex;gap:9px;align-items:flex-start;animation:pop .22s ease}
+.toast.ok{background:#0d7a52} .toast.err{background:#b3282d} .toast.warn{background:#8a5606}
+.toast svg{flex:0 0 16px;margin-top:2px}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.modal-root{position:fixed;inset:0;z-index:300;display:none}
+.modal-root.open{display:block}
+.modal-bd{position:absolute;inset:0;background:rgba(10,18,34,.46);backdrop-filter:blur(2px)}
+.modal{position:relative;margin:6vh auto;width:min(680px,92vw);max-height:88vh;background:#fff;border-radius:var(--r-lg);box-shadow:var(--sh-2);display:flex;flex-direction:column;overflow:hidden;animation:pop .2s ease}
+.modal-hd{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.modal-hd .ttl{font-weight:650;font-size:15px}
+.modal-hd .x{margin-left:auto;border:0;background:none;cursor:pointer;color:var(--muted);width:32px;height:32px;border-radius:8px;display:grid;place-items:center}
+.modal-hd .x:hover{background:var(--bg-2)}
+.modal-bd-2{padding:18px;overflow:auto}
+.modal-ft{display:flex;gap:9px;justify-content:flex-end;padding:13px 18px;border-top:1px solid var(--line);background:#fbfcfe;flex-wrap:wrap}
+.code-area{width:100%;min-height:180px;font-family:var(--mono);font-size:12px;white-space:pre;overflow:auto}
+
+.backdrop{position:fixed;inset:0;background:rgba(10,18,34,.42);z-index:55;display:none}
+.backdrop.open{display:block}
+
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.center{text-align:center}
+.nowrap{white-space:nowrap}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.divider{height:1px;background:var(--line-2);margin:16px 0}
+
+@media (max-width:1080px){
+  .grid.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid.g5{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid.g-2-1{grid-template-columns:1fr}
+}
+@media (max-width:900px){
+  .sidebar{transform:translateX(-100%);transition:transform .22s ease;box-shadow:var(--sh-2)}
+  .sidebar.open{transform:none}
+  .main{margin-left:0}
+  .hamb{display:inline-flex}
+  .view{padding:16px 14px 54px}
+  .topbar{padding:0 14px}
+  .grid.g3,.grid.g2{grid-template-columns:1fr}
+  .qr-box img{width:198px;height:198px}
+}
+@media (max-width:560px){
+  .grid.g4,.grid.g5{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat .v{font-size:25px}
+  .tb-right .chip{display:none}
+  .phone{width:100%;max-width:330px}
+  .qr-box img{width:176px;height:176px}
+  .tb-title span{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></svg>
+      </div>
+      <div class="brand-txt"><b>教学管理系统</b><span>签到 · 作业统计 · 学生管理</span></div>
+    </div>
+    <nav class="nav" id="nav" aria-label="主导航"></nav>
+    <div class="sidebar-foot">
+      <span class="dot"></span>本地运行 · 数据存于浏览器内存
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamb" id="hamb" aria-label="打开导航">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div class="tb-title" id="tbTitle"><b>数据总览</b><span>教学管理系统</span></div>
+      <div class="tb-right">
+        <span class="chip" id="chipTerm"><span class="dot"></span>2026 秋季学期</span>
+        <button class="btn sm" data-act="openImport">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>导入数据
+        </button>
+        <button class="btn sm" data-act="exportAll">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>导出数据
+        </button>
+      </div>
+    </header>
+    <main class="view" id="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="modal-root" id="modalRoot"></div>
+<input type="file" id="jsonInput" class="hidden-input" accept=".json,application/json">
+
+<script>/*!
+ * QR Code Generator for JavaScript (qrcode-generator)
+ * Copyright (c) 2009 Kazuhiko Arase -- MIT License
+ * https://github.com/kazuhikoarase/qrcode-generator
+ * 'QR Code' is a registered trademark of DENSO WAVE INCORPORATED.
+ * Minified build, inlined for fully offline single-file delivery.
+ */
+var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1})},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="\x3Cimg",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(o*r,n*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(){var t=n("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});</script>
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+ * 0. 基础工具
+ * ========================================================== */
+var $  = function(s,r){ return (r||document).querySelector(s); };
+var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];}); }
+function pad2(n){ return (n<10?"0":"")+n; }
+function fmtDate(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+function fmtTime(d){ return pad2(d.getHours())+":"+pad2(d.getMinutes())+":"+pad2(d.getSeconds()); }
+function fmtDT(d){ return fmtDate(d)+" "+fmtTime(d); }
+function pct(a,b){ return b>0 ? Math.round(a/b*1000)/10 : 0; }
+function fmtPct(v){ return (Math.round(v*10)/10)+"%"; }
+function num(v){ var n=Number(v); return isNaN(n)?0:n; }
+function uid(prefix){ DB.seq[prefix]=(DB.seq[prefix]||0)+1; return prefix+DB.seq[prefix]; }
+function bySid(sid){ for(var i=0;i<DB.students.length;i++){ if(DB.students[i].sid===sid) return DB.students[i]; } return null; }
+function byId(list,id){ for(var i=0;i<list.length;i++){ if(list[i].id===id) return list[i]; } return null; }
+function classOf(student){ return student ? byId(DB.classes,student.classId) : null; }
+function classStudents(cid){ return DB.students.filter(function(s){ return s.classId===cid; }).sort(function(a,b){ return a.sid<b.sid?-1:1; }); }
+function initials(name){ return String(name||"?").slice(0,1); }
+function icon(path,d){ return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(d||1.9)+'" stroke-linecap="round" stroke-linejoin="round">'+path+'</svg>'; }
+var ICON={
+  dash:icon('<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>'),
+  qr:icon('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/>'),
+  hw:icon('<path d="M9 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6M9 16h3"/>'),
+  users:icon('<path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M17 11.5a3.5 3.5 0 0 0 0-7"/><path d="M21 20v-1.5a4 4 0 0 0-3-3.9"/>'),
+  check:icon('<path d="M20 6 9 17l-5-5"/>'),
+  plus:icon('<path d="M12 5v14M5 12h14"/>'),
+  upload:icon('<path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/>'),
+  down:icon('<path d="M12 4v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/>'),
+  trash:icon('<path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/>'),
+  edit:icon('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>'),
+  refresh:icon('<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>'),
+  warn:icon('<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.5 2.5 17a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.5a2 2 0 0 0-3.4 0Z"/>'),
+  info:icon('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'),
+  db:icon('<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>'),
+  search:icon('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
+  print:icon('<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/>'),
+  folder:icon('<path d="M4 20a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4l2 3h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2Z"/>')
+};
+
+function toast(msg,kind){
+  var box=$("#toasts"); var el=document.createElement("div");
+  el.className="toast "+(kind||"");
+  var ic = kind==="err"?ICON.warn : kind==="warn"?ICON.warn : ICON.check;
+  el.innerHTML='<span style="color:inherit">'+ic+'</span><span>'+esc(msg)+'</span>';
+  box.appendChild(el);
+  setTimeout(function(){ el.style.transition="opacity .25s"; el.style.opacity="0"; setTimeout(function(){ el.remove(); },260); }, 2600);
+}
+var modalRoot=$("#modalRoot");
+function openModal(opt){
+  modalRoot.innerHTML =
+    '<div class="modal-bd" data-close="1"></div>'+
+    '<div class="modal" role="dialog" aria-modal="true">'+
+      '<div class="modal-hd"><span class="ttl">'+esc(opt.title||"")+'</span>'+
+        '<button class="x" data-close="1" aria-label="关闭">'+
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'+
+        '</button></div>'+
+      '<div class="modal-bd-2">'+(opt.body||"")+'</div>'+
+      (opt.footer===false?"":'<div class="modal-ft">'+((opt.actions||[]).map(function(a,i){
+          return '<button class="btn '+(a.kind||"")+'" data-mact="'+i+'">'+esc(a.label)+'</button>';
+      }).join(""))+'</div>')+
+    '</div>';
+  modalRoot.classList.add("open");
+  if(opt.onMount) opt.onMount(modalRoot);
+  $$("[data-close]",modalRoot).forEach(function(el){ el.onclick=function(){ closeModal(); }; });
+  $$("[data-mact]",modalRoot).forEach(function(el){
+    el.onclick=function(){
+      var a=(opt.actions||[])[Number(el.getAttribute("data-mact"))];
+      if(!a) return;
+      if(a.onClick && a.onClick(modalRoot)===false) return;
+      if(a.keepOpen!==true) closeModal();
+    };
+  });
+}
+function closeModal(){ modalRoot.classList.remove("open"); modalRoot.innerHTML=""; }
+function confirmDialog(title,msg,onYes,danger){
+  openModal({
+    title:title,
+    body:'<div class="small" style="color:var(--ink-2)">'+msg+'</div>',
+    actions:[
+      {label:"取消",kind:"ghost"},
+      {label:"确认",kind:danger?"danger":"primary",onClick:function(){ onYes(); }}
+    ]
+  });
+}
+function download(filename,text,mime){
+  try{
+    var blob=new Blob(["\ufeff"+text],{type:mime||"text/csv;charset=utf-8"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a"); a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },0);
+    toast("已导出 "+filename,"ok");
+  }catch(e){
+    openModal({title:"导出内容（请手动复制）",body:'<textarea class="code-area" readonly>'+esc(text)+'</textarea>'});
+  }
+}
+function toCSV(rows){
+  return rows.map(function(r){
+    return r.map(function(c){
+      var s=(c==null?"":String(c));
+      return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+    }).join(",");
+  }).join("\r\n");
+}
+
+/* ============================================================
+ * 1. 数据层：内存数据库（含可选本地持久化）
+ * ========================================================== */
+var DB={ seq:{}, classes:[], students:[], sessions:[], attendance:[], assignments:[], submissions:[] };
+/* 数据全部保存在内存中：不写入任何浏览器存储，刷新页面回到初始状态 */
+function saveDB(){ /* 内存数据库，无需持久化 */ }
+function emptyDB(){ DB={ seq:{}, classes:[], students:[], sessions:[], attendance:[], assignments:[], submissions:[] }; }
+
+/* ---- 真实花名册（源自「副本2026级 1-2.xls」） ---- */
+var SEED_CLASSES=[
+  {name:"26级金融1班", students:[["赖罄宁","2026811164"],["盛琬舒","2026811211"],["石泽恩","2026811081"],["金诚轩","2026811057"],["段雨昕","2026811147"],["王雅婧","2026811061"],["陈嘉浩","2026811119"],["高玮祎","2026811167"],["何紫轩","2026811192"],["李尚宸","2026811023"],["黄将逸","2026811195"],["张向东","2026811126"],["姜文凯","2026811186"],["王浩名","2026811176"],["赖泽维","2026811116"],["帖俊阳","2026811047"],["孙乐桐","2026811085"],["田沐鑫","2026811118"],["梁家宇","2026811002"],["高语晨","2026811142"],["王安妮","2026811070"],["刘懿萱","2026811034"],["王梓烨","2026811222"],["石乙惠","2026811003"],["张刘书墨","2026811108"],["周治钮","2026811154"],["李钰涵","2026811089"],["谢朗","2026811194"],["梁乐函","2026811059"],["史竞仪","2026811027"],["周泽宇","2026811046"],["曹雪楠","2026811020"],["马鸣骏","2026811082"],["张梦元","2026811084"],["蒋涵宇","2026811170"],["杨斯涵","2026811190"],["王振添亿","2026811202"],["周大钲","2026811218"],["曾俊虹","2026811224"],["刘沐妍","2026811228"],["李思思","2026811227"],["路嘉硕","2026811231"]]},
+  {name:"26级金融2班", students:[["姚辛雨","2026811048"],["王董一","2026811200"],["苏美懿芮","2026811184"],["徐绍轩","2026811124"],["杜晓烨","2026811134"],["张臻","2026811153"],["楚涵珺","2026811112"],["张博涵","2026811037"],["彭悦湘","2026811178"],["李知恩","2026811187"],["何昱飞","2026811130"],["郑博仁","2026811158"],["梁家瑞","2026811044"],["姚政宇","2026811135"],["韩坤鹏","2026811159"],["方润怡","2026811011"],["闫成铭","2026811095"],["赵梓均","2026811182"],["陈锦森","2026811045"],["陈芊璇","2026811083"],["姜省涵","2026811205"],["王梓睿","2026811026"],["陈周盛","2026811163"],["谭万余","2026811106"],["郭绍凯","2026811156"],["高梓朔","2026811201"],["王子啸","2026811004"],["孔含宇","2026811007"],["屈可晴","2026811019"],["陶陶","2026811028"],["周奕辰","2026811049"],["黄怡萱","2026811197"],["刘耀坤","2026811131"],["李玥霏","2026811076"],["方梓涵","2026811099"],["李营","2026811150"],["褚子珺","2026811143"],["晏梓诚","2026811069"],["赵浩森","2026811213"],["陈翊铭","2026811221"],["蒿锌悦","2026811225"],["杨煊赫","2025811187"]]}
+];
+/* 真实作业提交名单（由「作业数据」目录文件名按学号/姓名匹配得出） */
+var SEED_SUB_2BAN_A=["2026811004","2026811007","2026811011","2026811019","2026811026","2026811028","2026811037","2026811044","2026811045","2026811048","2026811083","2026811095","2026811099","2026811106","2026811112","2026811124","2026811130","2026811131","2026811134","2026811135","2026811150","2026811156","2026811158","2026811159","2026811163","2026811178","2026811187","2026811197","2026811200","2026811205"];
+var SEED_SUB_1BAN=["2026811002","2026811003","2026811020","2026811023","2026811046","2026811047","2026811057","2026811059","2026811061","2026811070","2026811081","2026811082","2026811085","2026811089","2026811108","2026811118","2026811119","2026811147","2026811154","2026811164","2026811167","2026811170","2026811186","2026811190","2026811192","2026811202","2026811211","2026811218","2026811222","2026811227","2026811228","2026811231"];
+
+function seedDemo(){
+  emptyDB();
+  var now=new Date();
+  var cids=[];
+  SEED_CLASSES.forEach(function(c,i){
+    var cid=uid("C");
+    DB.classes.push({ id:cid, name:c.name, grade:"2026级", teacher:i===0?"周德清":"夏聪", counselor:i===0?"刘长翠":"樊莲莲", room:i===0?"致知楼 305":"致知楼 307", createdAt:fmtDT(now) });
+    cids.push(cid);
+    c.students.forEach(function(p){
+      DB.students.push({ id:uid("S"), sid:p[1], name:p[0], classId:cid, status:"在册", createdAt:fmtDT(now) });
+    });
+  });
+
+  /* 示例签到会话 */
+  var s1=uid("K");
+  DB.sessions.push({ id:s1, code:"K7-Q2M9", classId:cids[1], title:"第6周 · 上午3-4节", date:"2026-10-09", start:"08:00", lateAfter:"08:10", end:"09:40", status:"closed", createdAt:"2026-10-09 07:52:10" });
+  var s1stu=classStudents(cids[1]);
+  var pat=[]; for(var i=0;i<s1stu.length;i++) pat.push(i<33?"present":(i<36?"late":(i<38?"leave":"absent")));
+  s1stu.forEach(function(st,i){
+    if(pat[i]==="absent") return;
+    DB.attendance.push({ id:uid("A"), sessionId:s1, studentId:st.id, status:pat[i], time: pat[i]==="present"?"08:0"+(i%9)+":12":(pat[i]==="late"?"08:1"+(i%5)+":40":"08:03:05"), method: i%3===0?"扫码":"教师代录" });
+  });
+
+  var s2=uid("K");
+  DB.sessions.push({ id:s2, code:"M4-T8X1", classId:cids[0], title:"第7周 · 上午3-4节", date:"2026-10-15", start:"08:00", lateAfter:"08:10", end:"09:40", status:"closed", createdAt:"2026-10-15 07:50:02" });
+  var s2stu=classStudents(cids[0]);
+  var pat2=[]; for(var j=0;j<s2stu.length;j++) pat2.push(j<31?"present":(j<34?"late":(j<36?"leave":"absent")));
+  s2stu.forEach(function(st,i){
+    if(pat2[i]==="absent") return;
+    DB.attendance.push({ id:uid("A"), sessionId:s2, studentId:st.id, status:pat2[i], time: pat2[i]==="present"?"08:0"+(i%9)+":27":(pat2[i]==="late"?"08:1"+(i%6)+":02":"08:05:11"), method: i%4===0?"扫码":"教师代录" });
+  });
+
+  /* 示例作业与提交（真实名单） */
+  var a1=uid("W");
+  DB.assignments.push({ id:a1, classId:cids[1], title:"作业3 分类汇总和数据有效性", deadline:"2026-10-09 23:59", createdAt:"2026-10-09 08:00:00", source:"示例数据" });
+  SEED_SUB_2BAN_A.forEach(function(sid){
+    var st=bySid(sid); if(!st) return;
+    DB.submissions.push({ id:uid("B"), assignmentId:a1, studentId:st.id, files:[sid+"_"+st.name+"_作业3 分类汇总和数据有效性.xlsx"], matchedBy:"学号+姓名", time:"2026-10-09 12:30:00" });
+  });
+  var a2=uid("W");
+  DB.assignments.push({ id:a2, classId:cids[0], title:"作业5 Countif函数 大计", deadline:"2026-10-15 23:59", createdAt:"2026-10-15 08:00:00", source:"示例数据" });
+  SEED_SUB_1BAN.forEach(function(sid){
+    var st=bySid(sid); if(!st) return;
+    DB.submissions.push({ id:uid("B"), assignmentId:a2, studentId:st.id, files:[st.name+"_Countif函数 大计.xlsx"], matchedBy:"姓名", time:"2026-10-15 13:10:00" });
+  });
+}
+
+/* ============================================================
+ * 2. 二维码（离线生成，可被手机扫描解析；采用 MIT 许可的 qrcode-generator）
+ * ========================================================== */
+if(typeof qrcode!=="undefined" && qrcode.stringToBytesFuncs){
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+}
+var qrCache={};
+function qrDataURL(text,size){
+  var key=text+"|"+size;
+  if(qrCache[key]) return qrCache[key];
+  var qr=qrcode(0,"M"); qr.addData(text,"Byte"); qr.make();
+  var n=qr.getModuleCount(), quiet=4, total=n+quiet*2;
+  var scale=Math.max(2,Math.floor((size||256)/total)), px=total*scale;
+  var cv=document.createElement("canvas"); cv.width=px; cv.height=px;
+  var ctx=cv.getContext("2d");
+  ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,px,px);
+  ctx.fillStyle="#0b1324";
+  for(var r=0;r<n;r++){ for(var c=0;c<n;c++){ if(qr.isDark(r,c)) ctx.fillRect((c+quiet)*scale,(r+quiet)*scale,scale,scale); } }
+  var url=cv.toDataURL("image/png");
+  qrCache[key]=url; return url;
+}
+function checkinPayload(session){
+  return "TMS-CHECKIN:"+session.code+":"+session.date;
+}
+function newCode(){
+  var abc="ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s="";
+  for(var i=0;i<4;i++) s+=abc[Math.floor(Math.random()*abc.length)];
+  for(var j=0;j<4;j++) s+=abc[Math.floor(Math.random()*abc.length)];
+  return s.slice(0,4)+"-"+s.slice(4);
+}
+
+/* ============================================================
+ * 3. 作业文件名匹配（学号 + 姓名）
+ * ========================================================== */
+function matchFilename(fname,candidates){
+  var digits=fname.match(/\d{6,}/g)||[];
+  for(var i=0;i<digits.length;i++){
+    for(var j=0;j<candidates.length;j++){
+      if(candidates[j].sid===digits[i]) return {student:candidates[j],by:"学号"};
+    }
+  }
+  var sorted=candidates.slice().sort(function(a,b){ return b.name.length-a.name.length; });
+  for(var k=0;k<sorted.length;k++){
+    if(sorted[k].name && fname.indexOf(sorted[k].name)>=0) return {student:sorted[k],by:"姓名"};
+  }
+  return null;
+}
+function buildSubmissionResult(assignment,files){
+  var students=classStudents(assignment.classId);
+  var roster={}; students.forEach(function(s){ roster[s.id]=s; });
+  var others=DB.students.filter(function(s){ return s.classId!==assignment.classId; });
+  var hits={}, dup={}, foreign=[], orphan=[];
+  files.forEach(function(f){
+    var m=matchFilename(f.name,students);
+    if(m){
+      if(!hits[m.student.id]) hits[m.student.id]={student:m.student,by:m.by,files:[],time:null};
+      hits[m.student.id].files.push(f.name);
+      if(!hits[m.student.id].time) hits[m.student.id].time=f.time;
+      return;
+    }
+    var mo=matchFilename(f.name,others);
+    if(mo) foreign.push({name:f.name,who:mo.student,by:mo.by});
+    else orphan.push(f.name);
+  });
+  var submitted=students.filter(function(s){ return !!hits[s.id]; });
+  var missing=students.filter(function(s){ return !hits[s.id]; });
+  var dups=Object.keys(hits).filter(function(k){ return hits[k].files.length>1; });
+  return {
+    students:students, hits:hits, submitted:submitted, missing:missing,
+    dupCount:dups.length, dupList:dups, foreign:foreign, orphan:orphan,
+    files:files, total:students.length, submittedCount:submitted.length, missingCount:missing.length, rate:pct(submitted.length,students.length)
+  };
+}
+
+/* ============================================================
+ * 4. 视图路由
+ * ========================================================== */
+var state={ view:"dashboard", activeSessionId:null, hwResult:null, hwAssignmentId:null, hwBusy:false,
+  stu:{ classId:"all", q:"", tab:"students" }, stat:{ sessionId:null, filter:"all" }, scope:{ sessionId:"" }, lastSim:null };
+var NAV=[
+  {id:"dashboard", label:"数据总览", icon:ICON.dash},
+  {id:"checkin",   label:"在线签到", icon:ICON.qr},
+  {id:"homework",  label:"作业统计", icon:ICON.hw},
+  {id:"students",  label:"学生与班级", icon:ICON.users}
+];
+function renderNav(){
+  var n=$("#nav");
+  n.innerHTML='<div class="nav-lbl">功能菜单</div>'+NAV.map(function(x){
+    var cnt="";
+    if(x.id==="checkin") cnt='<span class="cnt">'+DB.sessions.length+'</span>';
+    if(x.id==="homework") cnt='<span class="cnt">'+DB.assignments.length+'</span>';
+    if(x.id==="students") cnt='<span class="cnt">'+DB.students.length+'</span>';
+    return '<button class="nav-item'+(state.view===x.id?" active":"")+'" data-nav="'+x.id+'">'+x.icon+'<span>'+x.label+'</span>'+cnt+'</button>';
+  }).join("");
+}
+var TITLES={
+  dashboard:["数据总览","签到、作业与学生数据的整体概览"],
+  checkin:["在线签到","扫码签到 · 按需输出签到统计"],
+  homework:["作业统计","文件/文件夹上传 · 按学号+姓名匹配 · 数字面板"],
+  students:["学生与班级","学生信息、班级管理（数据库）"]
+};
+function render(){
+  renderNav();
+  var t=TITLES[state.view]||["页面",""];
+  $("#tbTitle").innerHTML='<b>'+t[0]+'</b><span>'+t[1]+'</span>';
+  var view=$("#view");
+  if(state.view==="dashboard") view.innerHTML=viewDashboard();
+  else if(state.view==="checkin") view.innerHTML=viewCheckin();
+  else if(state.view==="homework") view.innerHTML=viewHomework();
+  else view.innerHTML=viewStudents();
+  view.focus({preventScroll:true});
+  if(state.view==="checkin") mountCheckin();
+  if(state.view==="homework") mountHomework();
+}
+function go(v){ state.view=v; render(); $("#sidebar").classList.remove("open"); $("#backdrop").classList.remove("open"); window.scrollTo(0,0); }
+
+/* ============================================================
+ * 5. 视图：数据总览
+ * ========================================================== */
+function attendanceStats(session){
+  var ro=classStudents(session.classId);
+  var rec={}; DB.attendance.forEach(function(a){ if(a.sessionId===session.id) rec[a.studentId]=a; });
+  var present=0,late=0,leave=0,absent=0;
+  ro.forEach(function(s){ var r=rec[s.id]; if(!r){ absent++; } else if(r.status==="present"){present++;} else if(r.status==="late"){late++;} else if(r.status==="leave"){leave++;} else {absent++;} });
+  var attended=present+late;
+  return { roster:ro, rec:rec, present:present, late:late, leave:leave, absent:absent, attended:attended, rate:pct(attended,ro.length) };
+}
+function assignmentStats(a){
+  var students=classStudents(a.classId);
+  var inClass={}; students.forEach(function(s){ inClass[s.id]=1; });
+  var hits={};
+  DB.submissions.filter(function(s){ return s.assignmentId===a.id; }).forEach(function(s){
+    var sd=byId(DB.students,s.studentId); if(!sd) return;
+    if(!hits[s.studentId]) hits[s.studentId]={student:sd,by:s.matchedBy||"学号+姓名",files:[]};
+    hits[s.studentId].files=hits[s.studentId].files.concat(s.files||[]);
+  });
+  Object.keys(hits).forEach(function(k){ if(!inClass[k]) delete hits[k]; });
+  var submitted=[],missing=[];
+  students.forEach(function(st){ (hits[st.id]?submitted:missing).push(st); });
+  var dupCount=Object.keys(hits).filter(function(k){ return hits[k].files.length>1; }).length;
+  var fileCount=0; Object.keys(hits).forEach(function(k){ fileCount+=hits[k].files.length; });
+  return { students:students, hits:hits, submitted:submitted, missing:missing,
+    submittedCount:submitted.length, missingCount:missing.length, dupCount:dupCount,
+    total:students.length, rate:pct(submitted.length,students.length), files:fileCount };
+}
+function viewDashboard(){
+  var totalStudents=DB.students.length;
+  var overallAtt=DB.sessions.length? Math.round(DB.sessions.reduce(function(n,s){ return n+attendanceStats(s).rate; },0)/DB.sessions.length*10)/10 : 0;
+  var overallHw=DB.assignments.length? Math.round(DB.assignments.reduce(function(n,a){ return n+assignmentStats(a).rate; },0)/DB.assignments.length*10)/10 : 0;
+  var missingTotal=DB.assignments.reduce(function(n,a){ return n+assignmentStats(a).missingCount; },0);
+
+  var hwRows=DB.assignments.map(function(a){
+    var st=assignmentStats(a);
+    var cl=byId(DB.classes,a.classId);
+    return {a:a,st:st,cl:cl};
+  }).sort(function(x,y){ return (y.a.createdAt||"")<(x.a.createdAt||"")?-1:1; });
+
+  var sessRows=DB.sessions.map(function(s){ return {s:s,st:attendanceStats(s),cl:byId(DB.classes,s.classId)}; })
+    .sort(function(x,y){ return (y.s.date+ (y.s.start||""))<(x.s.date+(x.s.start||""))?-1:1; });
+
+  return ''+
+  '<div class="grid g4">'+
+    statCard("班级数量",DB.classes.length,"个",totalStudents+" 名在册学生","info")+
+    statCard("学生总数",totalStudents,"人",DB.classes.map(function(c){ return c.name.replace("26级金融","")+" "+classStudents(c.id).length; }).join(" · ")||"暂未录入","")+
+    statCard("签到率（均值）",overallAtt,"%","共 "+DB.sessions.length+" 次签到会话",overallAtt>=90?"ok":overallAtt>=80?"warn":"danger")+
+    statCard("作业提交率（均值）",overallHw,"%","共 "+DB.assignments.length+" 次作业",overallHw>=90?"ok":overallHw>=70?"warn":"danger")+
+  '</div>'+
+
+  '<div class="grid g-2-1" style="margin-top:18px">'+
+    '<div class="panel"><div class="panel-hd"><span class="ttl">作业提交概览</span><span class="sub">应交 / 实交 / 提交率</span>'+
+      '<div class="right"><button class="btn sm" data-act="goHomework">'+ICON.hw+'进入作业统计</button></div></div>'+
+      (hwRows.length?'<div class="panel-bd">'+hwRows.map(function(r){
+        var cls=r.st.rate>=90?"ok":r.st.rate>=70?"warn":"danger";
+        return '<div style="margin-bottom:16px">'+
+          '<div class="row" style="gap:10px"><b style="font-size:13.5px">'+esc(r.a.title)+'</b>'+
+            '<span class="badge muted plain">'+esc(r.cl?r.cl.name:"—")+'</span>'+
+            '<span class="spacer"></span><span class="small muted">截止 '+esc(r.a.deadline)+'</span></div>'+
+          '<div class="row" style="gap:16px;margin-top:6px">'+
+            '<span class="small">应交 <b>'+r.st.total+'</b> 人</span>'+
+            '<span class="small">实交 <b style="color:var(--ok)">'+r.st.submittedCount+'</b> 人</span>'+
+            '<span class="small">未交 <b style="color:var(--danger)">'+r.st.missingCount+'</b> 人</span>'+
+            '<span class="spacer"></span><b style="font-size:15px">'+fmtPct(r.st.rate)+'</b></div>'+
+          '<div class="bar '+cls+'"><i style="width:'+Math.min(100,r.st.rate)+'%"></i></div>'+
+        '</div>';
+      }).join("")+'</div>':'<div class="empty">'+ICON.hw+'<div>暂无作业记录</div></div>')+
+    '</div>'+
+
+    '<div class="stack">'+
+      '<div class="panel"><div class="panel-hd"><span class="ttl">未交人次</span></div>'+
+        '<div class="panel-bd"><div class="stat danger" style="border:0;box-shadow:none;padding:0">'+
+          '<div class="k">全部作业累计未交</div><div class="v">'+missingTotal+'<small>人次</small></div>'+
+          '<div class="d">已排除重复提交与无法归属的文件</div></div></div></div>'+
+      '<div class="panel"><div class="panel-hd"><span class="ttl">近期签到</span>'+
+        '<div class="right"><button class="btn sm" data-act="goCheckin">'+ICON.qr+'去签到</button></div></div>'+
+        '<div class="panel-bd tight">'+(sessRows.length?'<div class="list">'+sessRows.slice(0,4).map(function(r){
+          var cls=r.st.rate>=90?"ok":r.st.rate>=80?"warn":"danger";
+          return '<div class="list-row"><div class="avatar">'+esc(initials(r.cl?r.cl.name:"—"))+'</div><div class="g">'+
+            '<div class="t">'+esc(r.s.title)+'</div><div class="s">'+esc(r.cl?r.cl.name:"—")+' · '+esc(r.s.date)+' · 实到 '+r.st.attended+'/'+r.st.roster.length+'</div></div>'+
+            '<span class="badge '+cls+'">'+fmtPct(r.st.rate)+'</span></div>';
+        }).join("")+'</div>':'<div class="empty">'+ICON.qr+'<div>暂无签到会话</div></div>')+'</div></div>'+
+    '</div>'+
+  '</div>'+
+
+  '<div class="grid g4" style="margin-top:18px">'+
+    quickTile("在线签到","生成二维码，学生手机扫码签到","qr","goCheckin")+
+    quickTile("作业统计","上传文件或文件夹，自动匹配统计","hw","goHomework")+
+    quickTile("学生与班级","学生信息与班级管理（数据库）","users","goStudents")+
+    quickTile("数据备份","导出/导入 JSON，恢复示例数据","db","openData")
+  '</div>';
+}
+function statCard(k,v,unit,d,kind){
+  return '<div class="stat '+(kind||"")+'"><div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+'<small>'+esc(unit||"")+'</small></div><div class="d">'+esc(d||"")+'</div></div>';
+}
+function quickTile(title,desc,ic,act){
+  var icons={qr:ICON.qr,hw:ICON.hw,users:ICON.users,db:ICON.db};
+  return '<button class="panel" data-act="'+act+'" style="text-align:left;cursor:pointer;padding:16px;border:1px solid var(--line);display:flex;gap:12px;align-items:center;background:#fff">'+
+    '<span style="width:40px;height:40px;border-radius:11px;background:var(--primary-050);color:var(--primary);display:grid;place-items:center;flex:0 0 40px">'+icons[ic]+'</span>'+
+    '<span><b style="display:block;font-size:13.5px">'+esc(title)+'</b><span class="small muted">'+esc(desc)+'</span></span></button>';
+}
+
+/* ============================================================
+ * 6. 视图：在线签到
+ * ========================================================== */
+function viewCheckin(){
+  var active=state.activeSessionId?byId(DB.sessions,state.activeSessionId):null;
+  if(!active && DB.sessions.length) active=DB.sessions[DB.sessions.length-1];
+  if(active) state.activeSessionId=active.id;
+
+  var html="";
+  /* 新建会话 */
+  html+='<div class="panel"><div class="panel-hd"><span class="ttl">新建签到会话</span><span class="sub">创建后生成二维码，学生扫码签到</span></div>'+
+    '<div class="panel-bd"><div class="form-grid">'+
+      field("班级",'<select id="k_class">'+DB.classes.map(function(c){ return '<option value="'+c.id+'">'+esc(c.name)+'（'+classStudents(c.id).length+'人）</option>'; }).join("")+'</select>')+
+      field("会话名称",'<input type="text" id="k_title" placeholder="如：第8周 · 上午3-4节" value="'+esc("第"+((DB.sessions.length%16)+1)+"次课 · 课堂签到")+'">')+
+      field("上课日期",'<input type="date" id="k_date" value="'+fmtDate(new Date())+'">')+
+      field("开始时间",'<input type="time" id="k_start" value="08:00">')+
+      field("迟到阈值",'<input type="time" id="k_late" value="08:10">')+
+      field("结束时间",'<input type="time" id="k_end" value="09:40">')+
+    '</div><div class="btn-row" style="margin-top:14px"><button class="btn primary" data-act="createSession">'+ICON.plus+'创建签到会话</button>'+
+      '<span class="small muted">当前系统时间：'+esc(fmtDT(new Date()))+'</span></div></div></div>';
+
+  if(DB.classes.length===0){
+    return html+'<div class="panel" style="margin-top:18px"><div class="empty">'+ICON.warn+'<div>请先在「学生与班级」中创建班级</div></div></div>';
+  }
+
+  if(active){
+    var st=attendanceStats(active); var cl=byId(DB.classes,active.classId);
+    var payload=checkinPayload(active);
+    html+='<div class="section-title">当前签到会话</div>';
+    html+='<div class="panel"><div class="panel-hd"><span class="ttl">'+esc(active.title)+'</span>'+
+      '<span class="badge '+(active.status==="open"?"ok":"muted")+'">'+(active.status==="open"?"签到进行中":"已结束")+'</span>'+
+      '<span class="sub">'+esc(cl?cl.name:"—")+' · '+esc(active.date)+' '+esc(active.start)+'-'+esc(active.end)+' · 签到码 '+esc(active.code)+'</span>'+
+      '<div class="right">'+
+        '<button class="btn sm" data-act="toggleSession" data-id="'+active.id+'">'+(active.status==="open"?"结束签到":"重新开启")+'</button>'+
+        '<button class="btn sm danger" data-act="delSession" data-id="'+active.id+'">'+ICON.trash+'删除</button>'+
+      '</div></div>'+
+      '<div class="panel-bd"><div class="qr-card">'+
+        '<div class="qr-box">\x3Cimg src="'+qrDataURL(payload,256)+'" alt="签到二维码：'+esc(payload)+'" width="228" height="228">'+
+          '<div class="cap">手机扫码进入签到</div><div class="cap mono" style="margin-top:2px">'+esc(payload)+'</div></div>'+
+        '<div class="qr-side stack">'+
+          '<div class="stat info" style="border:1px solid var(--line);box-shadow:none">'+
+            '<div class="k">签到进度</div><div class="v">'+st.attended+'<small>/'+st.roster.length+'</small></div>'+
+            '<div class="bar '+(st.rate>=90?"ok":st.rate>=80?"warn":"danger")+'"><i style="width:'+Math.min(100,st.rate)+'%"></i></div>'+
+            '<div class="d" style="margin-top:6px">签到率 '+fmtPct(st.rate)+' · 正常 '+st.present+' · 迟到 '+st.late+' · 请假 '+st.leave+' · 缺勤 '+st.absent+'</div></div>'+
+          '<div class="row" style="gap:10px">'+
+            '<span class="pill">'+ICON.check+' 学生扫码后自动记为「已签到」</span>'+
+            '<span class="pill">'+ICON.info+' 超出迟到阈值记为「迟到」</span></div>'+
+          '<div class="small muted">离线演示：二维码内容为签到凭证，可在右侧「手机模拟」中模拟学生扫码流程；部署到服务器后把凭证换成签到页地址即可真实扫码。</div>'+
+        '</div>'+
+      '</div></div></div>';
+
+    /* 手机模拟 */
+    html+='<div class="panel"><div class="panel-hd"><span class="ttl">学生手机模拟 · 扫码签到</span><span class="sub">对应需求：学生通过手机扫码完成签到</span>'+
+      '<div class="right"><button class="btn sm" data-act="resetSim">'+ICON.refresh+'重置</button></div></div>'+
+      '<div class="panel-bd"><div class="row" style="align-items:flex-start;gap:22px">'+
+        simPhone(active)+
+        '<div class="qr-side stack" style="min-width:260px">'+
+          '<div class="stat" style="box-shadow:none;border:1px solid var(--line)"><div class="k">最近一次模拟签到</div>'+
+            (state.lastSim?'<div class="v" style="font-size:20px">'+esc(state.lastSim.name)+'</div><div class="d">'+esc(state.lastSim.cls)+' · '+esc(state.lastSim.status)+' · '+esc(state.lastSim.time)+'</div>':
+            '<div class="d" style="margin-top:8px">尚未模拟签到</div>')+'</div>'+
+          '<div class="panel" style="box-shadow:none"><div class="panel-hd"><span class="ttl" style="font-size:13px">签到方式说明</span></div>'+
+            '<div class="panel-bd small muted" style="padding:13px 15px">'+
+            '1. 教师端展示二维码；<br>2. 学生手机扫码读取签到凭证；<br>3. 校验身份后写入签到记录；<br>4. 教师端实时显示签到进度与统计。</div></div>'+
+        '</div>'+
+      '</div></div></div>';
+  } else {
+    html+='<div class="panel" style="margin-top:18px"><div class="empty">'+ICON.qr+'<div>还没有签到会话，先在上方创建一个</div></div></div>';
+  }
+
+  /* 签到统计输出 */
+  html+='<div class="section-title">签到统计输出</div>';
+  html+=viewCheckinStats();
+
+  /* 历史会话 */
+  html+='<div class="panel" style="margin-top:18px"><div class="panel-hd"><span class="ttl">历史签到会话</span><span class="sub">共 '+DB.sessions.length+' 条</span></div>';
+  if(DB.sessions.length){
+    html+='<div class="panel-bd tight"><div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+      '<th>会话</th><th>班级</th><th>日期</th><th>签到码</th><th class="num">实到/应到</th><th class="num">签到率</th><th>状态</th><th></th></tr></thead><tbody>';
+    DB.sessions.slice().sort(function(a,b){ return (b.date+b.start)<(a.date+a.start)?-1:1; }).forEach(function(s){
+      var sst=attendanceStats(s); var scl=byId(DB.classes,s.classId);
+      var cls=sst.rate>=90?"ok":sst.rate>=80?"warn":"danger";
+      html+='<tr><td>'+esc(s.title)+'</td><td>'+esc(scl?scl.name:"—")+'</td><td>'+esc(s.date)+'</td><td class="mono">'+esc(s.code)+'</td>'+
+        '<td class="num">'+sst.attended+' / '+sst.roster.length+'</td><td class="num"><span class="badge '+cls+'">'+fmtPct(sst.rate)+'</span></td>'+
+        '<td>'+(s.status==="open"?'<span class="badge ok">进行中</span>':'<span class="badge muted">已结束</span>')+'</td>'+
+        '<td><button class="btn sm" data-act="pickSession" data-id="'+s.id+'">查看</button></td></tr>';
+    });
+    html+='</tbody></table></div></div>';
+  } else html+='<div class="empty">'+ICON.qr+'<div>暂无历史会话</div></div>';
+  html+='</div>';
+
+  return html;
+}
+function simPhone(session){
+  var cl=byId(DB.classes,session.classId);
+  var stu=classStudents(session.classId);
+  var first=stu[0];
+  if(state.lastSim && state.lastSim.sessionId===session.id){
+    return '<div class="phone"><div class="notch"><i></i></div><div class="screen">'+
+      '<div class="ph-hd"><span class="logo">签</span>课堂签到</div>'+
+      '<div class="ph-bd"><div class="ph-ok">'+
+        '<span class="ic">'+ICON.check+'</span>'+
+        '<b style="font-size:16px">签到成功</b>'+
+        '<div class="small muted">'+esc(state.lastSim.name)+' · '+esc(state.lastSim.sid)+'</div>'+
+        '<div class="badge '+(state.lastSim.status==="迟到"?"warn":"ok")+'">'+esc(state.lastSim.status)+'</div>'+
+        '<div class="small muted">'+esc(state.lastSim.cls)+'<br>'+esc(state.lastSim.date)+' '+esc(state.lastSim.time)+'</div>'+
+        '<button class="btn sm" style="margin-top:6px" data-act="resetSim">再签一次</button>'+
+      '</div></div></div></div>';
+  }
+  return '<div class="phone"><div class="notch"><i></i></div><div class="screen">'+
+    '<div class="ph-hd"><span class="logo">签</span>课堂签到</div>'+
+    '<div class="ph-bd">'+
+      '<div><div class="lab">课程</div><div style="font-weight:600;font-size:13.5px">'+esc(session.title)+' · '+esc(cl?cl.name:"—")+'</div></div>'+
+      '<div class="scan-frame"><div class="sq"></div><div class="line"></div></div>'+
+      '<div class="small muted center">将镜头对准教师端二维码</div>'+
+      '<div class="field"><label>识别到的签到凭证</label><input type="text" id="sim_payload" value="'+esc(checkinPayload(session))+'" readonly></div>'+
+      '<div class="field"><label>我的身份（学号 / 姓名）</label><select id="sim_student">'+
+        stu.map(function(s){ return '<option value="'+s.id+'">'+esc(s.sid+" "+s.name)+'</option>'; }).join("")+
+      '</select></div>'+
+      '<div class="field"><label>签到状态（演示用）</label><select id="sim_status"><option value="auto">按当前时间自动判定</option><option value="present">正常</option><option value="late">迟到</option><option value="leave">请假</option></select></div>'+
+      '<button class="btn primary" style="justify-content:center" data-act="simSign">'+ICON.qr+'模拟扫码签到</button>'+
+      (first?'':'<div class="small muted">该班暂无学生</div>')+
+    '</div></div></div>';
+}
+function viewCheckinStats(){
+  var sess=DB.sessions.slice().sort(function(a,b){ return (b.date+b.start)<(a.date+a.start)?-1:1; });
+  if(!sess.length) return '<div class="panel"><div class="empty">'+ICON.hw+'<div>暂无签到数据</div></div></div>';
+  var sid=state.stat.sessionId && byId(DB.sessions,state.stat.sessionId) ? state.stat.sessionId : sess[0].id;
+  state.stat.sessionId=sid;
+  var s=byId(DB.sessions,sid); var st=attendanceStats(s); var cl=byId(DB.classes,s.classId);
+  var filter=state.stat.filter;
+  var rows=[];
+  st.roster.forEach(function(std){
+    var r=st.rec[std.id];
+    var stt = !r?"absent" : r.status;
+    if(filter!=="all"){
+      if(filter==="attended" && !(stt==="present"||stt==="late")) return;
+      if(filter==="absent" && stt!=="absent") return;
+      if(filter==="late" && stt!=="late") return;
+      if(filter==="leave" && stt!=="leave") return;
+    }
+    rows.push({std:std, r:r, stt:stt});
+  });
+  var label={present:"已签到",late:"迟到",leave:"请假",absent:"缺勤"}[filter];
+  var html='<div class="panel"><div class="panel-hd"><span class="ttl">'+esc(s.title)+'</span>'+
+    '<div style="min-width:230px">'+selectHtml("statSession",sess.map(function(x){ return {v:x.id,t:x.date+" · "+x.title}; }),sid)+'</div>'+
+    '<div class="right"><button class="btn sm" data-act="exportAttend">'+ICON.down+'导出签到统计(CSV)</button>'+
+    '<button class="btn sm" data-act="printView">'+ICON.print+'打印</button></div></div>'+
+    '<div class="panel-bd tight"><div class="panel-bd" style="border-bottom:1px solid var(--line-2)"><div class="grid g5">'+
+      statCard("应到",st.roster.length,"人",esc(cl?cl.name:"—"),"")+
+      statCard("实到（含迟到）",st.attended,"人","正常 "+st.present+" · 迟到 "+st.late,"ok")+
+      statCard("请假",st.leave,"人","已请假不计缺勤","info")+
+      statCard("缺勤（未签到）",st.absent,"人","含未签到与缺勤","danger")+
+      statCard("签到率",st.rate,"%","(正常+迟到)/应到",st.rate>=90?"ok":st.rate>=80?"warn":"danger")+
+    '</div></div>'+
+    '<div class="row" style="padding:13px 18px;border-bottom:1px solid var(--line-2)">'+
+      '<div class="tabs">'+["all","attended","absent","late","leave"].map(function(f){
+        var lb={all:"全部",attended:"已签到",absent:"未签到/缺勤",late:"迟到",leave:"请假"}[f];
+        return '<button class="tab'+(filter===f?" active":"")+'" data-act="statFilter" data-f="'+f+'">'+lb+'</button>';
+      }).join("")+'</div>'+
+      '<span class="spacer"></span><span class="small muted">筛选：'+esc(filter==="all"?"全部":label)+' · '+rows.length+' 条</span>'+
+    '</div>'+
+    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>学号</th><th>姓名</th><th>班级</th><th>状态</th><th>签到时间</th><th>方式</th></tr></thead><tbody>'+
+    (rows.length?rows.map(function(x){
+      var b = x.stt==="present"?'<span class="badge ok">已签到</span>':x.stt==="late"?'<span class="badge warn">迟到</span>':x.stt==="leave"?'<span class="badge info">请假</span>':'<span class="badge danger">缺勤</span>';
+      return '<tr><td class="sid">'+esc(x.std.sid)+'</td><td class="nm">'+esc(x.std.name)+'</td><td>'+esc(cl?cl.name:"—")+'</td><td>'+b+'</td>'+
+        '<td>'+(x.r?esc(x.r.time||"—"):"—")+'</td><td>'+(x.r?esc(x.r.method||"扫码"):"—")+'</td></tr>';
+    }).join(""):'<tr><td colspan="6" class="empty">没有符合条件的记录</td></tr>')+
+    '</tbody></table></div></div></div>';
+  return html;
+}
+function selectHtml(id,opts,val){
+  return '<select id="'+id+'">'+opts.map(function(o){ return '<option value="'+o.v+'"'+(o.v===val?" selected":"")+'>'+esc(o.t)+'</option>'; }).join("")+'</select>';
+}
+function mountCheckin(){
+  var sel=$("#statSession");
+  if(sel) sel.onchange=function(){ state.stat.sessionId=this.value; render(); };
+}
+function field(label,control,hint){
+  return '<div class="field"><label>'+esc(label)+'</label>'+control+(hint?'<span class="hint">'+esc(hint)+'</span>':"")+'</div>';
+}
+
+/* ============================================================
+ * 7. 视图：作业统计
+ * ========================================================== */
+function viewHomework(){
+  var html="";
+  html+='<div class="panel"><div class="panel-hd"><span class="ttl">新建作业</span><span class="sub">设定班级与截止时间后上传学生作业</span></div>'+
+    '<div class="panel-bd"><div class="form-grid">'+
+      field("班级",'<select id="w_class">'+DB.classes.map(function(c){ return '<option value="'+c.id+'">'+esc(c.name)+'（'+classStudents(c.id).length+'人）</option>'; }).join("")+'</select>')+
+      field("作业名称",'<input type="text" id="w_title" placeholder="如：作业6 图表与数据透视表">')+
+      field("截止时间",'<input type="text" id="w_deadline" placeholder="如：2026-10-22 23:59" value="'+esc(fmtDate(new Date())+" 23:59")+'">')+
+    '</div><div class="btn-row" style="margin-top:14px"><button class="btn primary" data-act="createAssignment">'+ICON.plus+'创建作业</button>'+
+      '<button class="btn" data-act="useLatest">使用最近一次作业</button></div></div></div>';
+
+  var a=state.hwAssignmentId?byId(DB.assignments,state.hwAssignmentId):null;
+  if(!a && DB.assignments.length){ a=DB.assignments[DB.assignments.length-1]; state.hwAssignmentId=a.id; }
+
+  if(!a){
+    html+='<div class="panel" style="margin-top:18px"><div class="empty">'+ICON.hw+'<div>先创建一个作业，再上传学生提交的文件</div></div></div>';
+    return html;
+  }
+  var cl=byId(DB.classes,a.classId);
+
+  html+='<div class="section-title">当前作业</div>';
+  html+='<div class="panel"><div class="panel-hd"><span class="ttl">'+esc(a.title)+'</span><span class="badge muted plain">'+esc(cl?cl.name:"—")+'</span>'+
+    '<span class="sub">截止 '+esc(a.deadline)+'</span>'+
+    '<div class="right"><div style="min-width:220px">'+selectHtml("hwAssignment",DB.assignments.map(function(x){ var c=byId(DB.classes,x.classId); return {v:x.id,t:c?c.name.replace("26级金融","")+"班 · "+x.title:x.title}; }),a.id)+'</div>'+
+    '<button class="btn sm danger" data-act="delAssignment" data-id="'+a.id+'">'+ICON.trash+'删除作业</button></div></div>';
+
+  html+='<div class="panel-bd"><div class="drop" id="dropZone">'+
+    '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>'+
+    '<div class="t">拖拽文件到此处，或选择上传方式</div>'+
+    '<div class="s">支持「文件上传」与「文件夹上传」；匹配规则：文件名包含<strong>学号</strong>或<strong>姓名</strong></div>'+
+    '<div class="btn-row" style="justify-content:center;margin-top:14px">'+
+      '<button class="btn primary" data-act="pickFiles">'+ICON.upload+'文件上传</button>'+
+      '<button class="btn" data-act="pickFolder">'+ICON.folder+'文件夹上传</button>'+
+    '</div></div>'+
+    '<input type="file" id="fileInput" class="hidden-input" multiple>'+
+    '<input type="file" id="folderInput" class="hidden-input" webkitdirectory directory multiple>';
+  if(state.hwBusy) html+='<div class="small muted" style="margin-top:10px">正在解析文件…</div>';
+  if(state.hwResult && state.hwResult.assignmentId===a.id){
+    html+='<div class="small muted" style="margin-top:10px">本次共读取 <b>'+state.hwResult.files.length+'</b> 个文件，最后一次更新 '+esc(state.hwResult.at)+'。可在下方查看统计结果。</div>';
+  }
+  html+='</div></div>';
+
+  /* 数字面板 */
+  var useResult = state.hwResult && state.hwResult.assignmentId===a.id;
+  var st = useResult? state.hwResult.stat : assignmentStats(a);
+  var roster = useResult? state.hwResult.stat.students : classStudents(a.classId);
+  html+='<div class="section-title">作业统计 · 数字面板</div>';
+  html+='<div class="panel"><div class="panel-hd"><span class="ttl">提交情况数字面板</span>'+
+    '<span class="sub">'+(useResult?"本次上传统计":"已保存记录（示例/历史）")+'</span>'+
+    '<div class="right"><button class="btn sm" data-act="exportHw">'+ICON.down+'导出统计(CSV)</button>'+
+    '<button class="btn sm" data-act="printView">'+ICON.print+'打印</button></div></div>'+
+    '<div class="panel-bd">'+
+    '<div class="grid g5">'+
+      statCard("应交人数",st.total,"人",esc(cl?cl.name:"—"),"")+
+      statCard("实交人数",st.submittedCount,"人","已匹配到学生",st.rate>=90?"ok":"warn")+
+      statCard("未交人数",st.total-st.submittedCount,"人","需要提醒补交","danger")+
+      statCard("提交率",st.rate,"%",st.submittedCount+" / "+st.total,st.rate>=90?"ok":st.rate>=70?"warn":"danger")+
+      statCard("重复提交",st.dupCount,"人","同一学生多个文件",st.dupCount>0?"info":"")+
+    '</div>'+
+    '<div class="divider"></div>'+
+    '<div class="row" style="gap:22px;align-items:center">'+
+      '<div class="ring-wrap"><div class="ring" style="--p:'+Math.min(100,st.rate)+';--c:'+(st.rate>=90?"var(--ok)":st.rate>=70?"var(--warn)":"var(--danger)")+'"><b>'+Math.round(st.rate)+'<i>%</i></b></div>'+
+      '<div class="legend">'+
+        '<div><i style="background:var(--ok)"></i>已提交<span class="n">'+st.submittedCount+' 人</span></div>'+
+        '<div><i style="background:var(--danger)"></i>未提交<span class="n">'+(st.total-st.submittedCount)+' 人</span></div>'+
+        '<div><i style="background:var(--info)"></i>归属失败文件<span class="n">'+(useResult?state.hwResult.stat.orphan.length:0)+' 个</span></div>'+
+        '<div><i style="background:var(--warn)"></i>非本班文件<span class="n">'+(useResult?state.hwResult.stat.foreign.length:0)+' 个</span></div>'+
+      '</div></div>'+
+    '</div>'+
+    '<div class="small muted" style="margin-top:14px">统计口径：只统计<strong>是否提交</strong>，不评价作业质量；匹配规则为文件名包含<strong>学号</strong>或<strong>姓名</strong>；同一学生多个文件只计一次并标记为重复提交。</div>'+
+    '</div></div>';
+
+  /* 明细 */
+  var detailRows=[];
+  roster.forEach(function(sd){
+    var hit = st.hits[sd.id];
+    detailRows.push({sd:sd,hit:hit});
+  });
+  html+='<div class="grid g-2-1" style="margin-top:18px">';
+  html+='<div class="panel"><div class="panel-hd"><span class="ttl">提交明细</span><span class="sub">按学号排序 · 共 '+detailRows.length+' 人</span></div>'+
+    '<div class="panel-bd tight"><div class="tbl-wrap" style="max-height:520px;overflow:auto"><table class="tbl"><thead><tr><th>学号</th><th>姓名</th><th>状态</th><th>匹配方式</th><th>文件</th></tr></thead><tbody>'+
+    detailRows.map(function(r){
+      var ok=!!r.hit;
+      return '<tr><td class="sid">'+esc(r.sd.sid)+'</td><td class="nm">'+esc(r.sd.name)+'</td>'+
+        '<td>'+(ok?'<span class="badge ok">已提交</span>':'<span class="badge danger">未提交</span>')+'</td>'+
+        '<td>'+(ok?'<span class="badge info plain">'+esc(r.hit.by)+'</span>':"—")+'</td>'+
+        '<td>'+(ok?esc(r.hit.files.join("；")):'—')+'</td></tr>';
+    }).join("")+
+    '</tbody></table></div></div></div>';
+  /* 右列：未交名单与异常文件 */
+  var missList=detailRows.filter(function(r){ return !r.hit; });
+  html+='<div class="stack">'+
+    '<div class="panel"><div class="panel-hd"><span class="ttl">未交名单</span><span class="sub">'+missList.length+' 人</span></div>'+
+      '<div class="panel-bd tight">'+(missList.length?'<div class="list">'+missList.map(function(r){
+        return '<div class="list-row"><div class="avatar" style="background:var(--danger-050);color:var(--danger)">'+esc(initials(r.sd.name))+'</div>'+
+        '<div class="g"><div class="t">'+esc(r.sd.name)+'</div><div class="s mono">'+esc(r.sd.sid)+'</div></div>'+
+        '<button class="btn sm" data-act="markSubmit" data-asg="'+a.id+'" data-stu="'+r.sd.id+'">标记已交</button></div>';
+      }).join("")+'</div>':'<div class="empty">'+ICON.check+'<div>全部已提交，太棒了</div></div>')+'</div></div>'+
+    '<div class="panel"><div class="panel-hd"><span class="ttl">归属异常文件</span><span class="sub">'+(useResult?(state.hwResult.stat.orphan.length+state.hwResult.stat.foreign.length):0)+' 个</span></div>'+
+      '<div class="panel-bd tight">'+(useResult && (state.hwResult.stat.orphan.length||state.hwResult.stat.foreign.length)?
+        '<div class="list">'+
+        state.hwResult.stat.foreign.slice(0,6).map(function(f){ return '<div class="list-row"><div class="g"><div class="t small">'+esc(f.name)+'</div>'+
+          '<div class="s">匹配到：'+esc(f.who.name)+'（'+esc(f.who.sid)+'）· 非本班</div></div><span class="badge warn">非本班</span></div>'; }).join("")+
+        state.hwResult.stat.orphan.slice(0,10).map(function(f){ return '<div class="list-row"><div class="g"><div class="t small">'+esc(f)+'</div>'+
+          '<div class="s">文件名未包含本班学号或姓名</div></div><span class="badge muted">无法归属</span></div>'; }).join("")+
+        '</div>':'<div class="empty">'+ICON.info+'<div>本次没有异常文件</div></div>')+'</div></div>'+
+  '</div></div>';
+
+  if(DB.assignments.length>1){
+    html+='<div class="panel" style="margin-top:18px"><div class="panel-hd"><span class="ttl">历史作业</span><span class="sub">共 '+DB.assignments.length+' 次</span></div>'+
+      '<div class="panel-bd tight"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>作业</th><th>班级</th><th>截止</th><th class="num">应交</th><th class="num">实交</th><th class="num">未交</th><th class="num">提交率</th><th></th></tr></thead><tbody>'+
+      DB.assignments.slice().sort(function(x,y){ return (y.createdAt||"")<(x.createdAt||"")?-1:1; }).map(function(x){
+        var s=assignmentStats(x); var c=byId(DB.classes,x.classId);
+        var cls=s.rate>=90?"ok":s.rate>=70?"warn":"danger";
+        return '<tr><td>'+esc(x.title)+'</td><td>'+esc(c?c.name:"—")+'</td><td>'+esc(x.deadline)+'</td>'+
+          '<td class="num">'+s.total+'</td><td class="num">'+s.submittedCount+'</td><td class="num">'+s.missingCount+'</td>'+
+          '<td class="num"><span class="badge '+cls+'">'+fmtPct(s.rate)+'</span></td>'+
+          '<td><button class="btn sm" data-act="pickAssignment" data-id="'+x.id+'">查看</button></td></tr>';
+      }).join("")+'</tbody></table></div></div></div>';
+  }
+  return html;
+}
+function savedHitFor(a,studentId){
+  var subs=DB.submissions.filter(function(s){ return s.assignmentId===a.id && s.studentId===studentId; });
+  if(!subs.length) return null;
+  var files=[],by=subs[0].matchedBy||"学号+姓名";
+  subs.forEach(function(s){ files=files.concat(s.files||[]); });
+  return {student:byId(DB.students,studentId),by:by,files:files};
+}
+function dupCountOf(a){
+  var count={}; DB.submissions.forEach(function(s){ if(s.assignmentId===a.id) count[s.studentId]=(count[s.studentId]||0)+1; });
+  return Object.keys(count).filter(function(k){ return count[k]>1; }).length;
+}
+function mountHomework(){
+  var asg=$("#hwAssignment");
+  if(asg) asg.onchange=function(){ state.hwAssignmentId=this.value; state.hwResult=null; render(); };
+  var fi=$("#fileInput");
+  if(fi) fi.onchange=function(){ if(this.files && this.files.length) handleFiles(this.files,false); this.value=""; };
+  var di=$("#folderInput");
+  if(di) di.onchange=function(){ if(this.files && this.files.length) handleFiles(this.files,true); this.value=""; };
+  var dz=$("#dropZone");
+  if(dz){
+    ["dragenter","dragover"].forEach(function(ev){ dz.addEventListener(ev,function(e){ e.preventDefault(); e.stopPropagation(); dz.classList.add("over"); }); });
+    ["dragleave","drop"].forEach(function(ev){ dz.addEventListener(ev,function(e){ e.preventDefault(); e.stopPropagation(); dz.classList.remove("over"); }); });
+    dz.addEventListener("drop",function(e){
+      var dt=e.dataTransfer; if(!dt) return;
+      var files=dt.files;
+      if(files && files.length) handleFiles(files,false);
+      else toast("未读取到文件，请改用「文件上传 / 文件夹上传」按钮","warn");
+    });
+  }
+}
+function handleFiles(fileList,fromFolder){
+  var a=state.hwAssignmentId?byId(DB.assignments,state.hwAssignmentId):null;
+  if(!a){ toast("请先创建作业","warn"); return; }
+  var files=[];
+  for(var i=0;i<fileList.length;i++){
+    var f=fileList[i];
+    var nm=f.webkitRelativePath || f.name;
+    files.push({ name:nm.split("/").pop(), path:nm, size:f.size, time:fmtDT(new Date()) });
+  }
+  state.hwBusy=true;
+  var stat=buildSubmissionResult(a,files);
+  /* 本次上传即该作业的最新提交记录：按匹配结果覆盖写回，保证统计与记录一致 */
+  DB.submissions=DB.submissions.filter(function(s){ return s.assignmentId!==a.id; });
+  Object.keys(stat.hits).forEach(function(stuId){
+    var h=stat.hits[stuId];
+    DB.submissions.push({ id:uid("B"), assignmentId:a.id, studentId:stuId,
+      files:h.files.slice(), matchedBy:h.by, time:h.time||fmtDT(new Date()) });
+  });
+  state.hwResult={ assignmentId:a.id, files:files, stat:stat, at:fmtDT(new Date()), fromFolder:!!fromFolder };
+  state.hwBusy=false;
+  render();
+  toast("已解析 "+files.length+" 个文件，匹配到 "+stat.submittedCount+" 名学生"+(stat.orphan.length?("，"+stat.orphan.length+" 个无法归属"):""), stat.submittedCount>0?"ok":"warn");
+}
+
+/* ============================================================
+ * 8. 视图：学生与班级
+ * ========================================================== */
+function viewStudents(){
+  var tab=state.stu.tab;
+  var html='<div class="row"><div class="tabs">'+
+    [["students","学生管理"],["classes","班级管理"],["database","数据表（数据库）"]].map(function(t){
+      return '<button class="tab'+(tab===t[0]?" active":"")+'" data-act="stuTab" data-t="'+t[0]+'">'+t[1]+
+        (t[0]==="students"?' <span class="muted">'+DB.students.length+'</span>':t[0]==="classes"?' <span class="muted">'+DB.classes.length+'</span>':"")+'</button>';
+    }).join("")+'</div></div>';
+
+  if(tab==="students") html+=viewStudentTable();
+  else if(tab==="classes") html+=viewClassTable();
+  else html+=viewDatabase();
+
+  return '<div class="stack">'+html+'</div>';
+}
+function viewStudentTable(){
+  var q=state.stu.q.trim(), cid=state.stu.classId;
+  var list=DB.students.filter(function(s){
+    if(cid!=="all" && s.classId!==cid) return false;
+    if(q && s.name.indexOf(q)<0 && s.sid.indexOf(q)<0) return false;
+    return true;
+  }).sort(function(a,b){ return a.sid<b.sid?-1:1; });
+
+  var html='<div class="panel"><div class="panel-hd"><span class="ttl">学生管理</span><span class="sub">'+list.length+' / '+DB.students.length+' 人</span>'+
+    '<div class="right">'+
+      '<div style="min-width:150px"><select id="stuClass">'+'<option value="all"'+(cid==="all"?" selected":"")+'>全部班级</option>'+
+        DB.classes.map(function(c){ return '<option value="'+c.id+'"'+(cid===c.id?" selected":"")+'>'+esc(c.name)+'</option>'; }).join("")+'</select></div>'+
+      '<div style="min-width:190px"><input type="search" id="stuQ" placeholder="搜索学号或姓名" value="'+esc(state.stu.q)+'"></div>'+
+      '<button class="btn primary sm" data-act="addStudent">'+ICON.plus+'新增学生</button>'+
+      '<button class="btn sm" data-act="importStudents">'+ICON.upload+'批量导入</button>'+
+    '</div></div>';
+  html+='<div class="panel-bd tight"><div class="tbl-wrap" style="max-height:600px;overflow:auto"><table class="tbl"><thead><tr>'+
+    '<th>学号</th><th>姓名</th><th>班级</th><th>状态</th><th>签到次数</th><th>作业提交</th><th></th></tr></thead><tbody>';
+  if(!list.length) html+='<tr><td colspan="7" class="empty">没有匹配的学生</td></tr>';
+  list.forEach(function(s){
+    var c=byId(DB.classes,s.classId);
+    var att=DB.attendance.filter(function(a){ return a.studentId===s.id && (a.status==="present"||a.status==="late"); }).length;
+    var sub=DB.submissions.filter(function(b){ return b.studentId===s.id; }).length;
+    html+='<tr><td class="sid">'+esc(s.sid)+'</td><td class="nm">'+esc(s.name)+'</td><td>'+esc(c?c.name:"—")+'</td>'+
+      '<td><span class="badge '+(s.status==="在册"?"ok":"muted")+'">'+esc(s.status)+'</span></td>'+
+      '<td class="num">'+att+'</td><td class="num">'+sub+'</td>'+
+      '<td><div class="btn-row"><button class="btn sm" data-act="editStudent" data-id="'+s.id+'">'+ICON.edit+'编辑</button>'+
+      '<button class="btn sm danger" data-act="delStudent" data-id="'+s.id+'">'+ICON.trash+'</button></div></td></tr>';
+  });
+  html+='</tbody></table></div></div></div>';
+  return html;
+}
+function viewClassTable(){
+  var html='<div class="panel"><div class="panel-hd"><span class="ttl">班级管理</span><span class="sub">共 '+DB.classes.length+' 个班级</span>'+
+    '<div class="right"><button class="btn primary sm" data-act="addClass">'+ICON.plus+'新增班级</button></div></div>';
+  if(!DB.classes.length) html+='<div class="empty">'+ICON.users+'<div>暂无班级</div></div>';
+  else{
+    html+='<div class="panel-bd tight"><div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+      '<th>班级</th><th>年级</th><th>班主任</th><th>辅导员</th><th class="num">人数</th><th>教室</th><th class="num">签到会话</th><th class="num">作业</th><th></th></tr></thead><tbody>';
+    DB.classes.forEach(function(c){
+      var n=classStudents(c.id).length;
+      var ks=DB.sessions.filter(function(s){ return s.classId===c.id; }).length;
+      var as=DB.assignments.filter(function(a){ return a.classId===c.id; }).length;
+      html+='<tr><td class="nm">'+esc(c.name)+'</td><td>'+esc(c.grade||"—")+'</td><td>'+esc(c.teacher||"—")+'</td><td>'+esc(c.counselor||"—")+'</td>'+
+        '<td class="num">'+n+'</td><td>'+esc(c.room||"—")+'</td><td class="num">'+ks+'</td><td class="num">'+as+'</td>'+
+        '<td><div class="btn-row"><button class="btn sm" data-act="editClass" data-id="'+c.id+'">'+ICON.edit+'编辑</button>'+
+        '<button class="btn sm danger" data-act="delClass" data-id="'+c.id+'">'+ICON.trash+'删除</button></div></td></tr>';
+    });
+    html+='</tbody></table></div></div>';
+  }
+  html+='</div>';
+  return html;
+}
+function viewDatabase(){
+  var tables=[
+    {name:"classes 班级", rows:DB.classes, cols:["id","name","grade","teacher","counselor","room"]},
+    {name:"students 学生", rows:DB.students, cols:["id","sid","name","classId","status"]},
+    {name:"sessions 签到会话", rows:DB.sessions, cols:["id","code","classId","title","date","start","end","status"]},
+    {name:"attendance 签到记录", rows:DB.attendance, cols:["id","sessionId","studentId","status","time","method"]},
+    {name:"assignments 作业", rows:DB.assignments, cols:["id","classId","title","deadline"]},
+    {name:"submissions 提交记录", rows:DB.submissions, cols:["id","assignmentId","studentId","matchedBy","files"]}
+  ];
+  var html='<div class="panel"><div class="panel-hd"><span class="ttl">数据表（内存数据库）</span>'+
+    '<span class="sub">'+tables.reduce(function(n,t){ return n+t.rows.length; },0)+' 条记录 · '+tables.length+' 张表</span>'+
+    '<div class="right"><span class="chip"><span class="dot"></span>数据保存在浏览器内存</span>'+
+    '<button class="btn sm" data-act="exportAll">'+ICON.down+'导出 JSON</button>'+
+    '<button class="btn sm" data-act="openImport">'+ICON.upload+'导入 JSON</button>'+
+    '<button class="btn sm danger" data-act="resetDemo">'+ICON.refresh+'恢复示例数据</button></div></div>'+
+    '<div class="panel-bd"><div class="grid g3">'+
+    tables.map(function(t){ return '<div class="stat compact '+(t.rows.length?"":"muted")+'" style="border:1px solid var(--line);box-shadow:none">'+
+      '<div class="k">'+esc(t.name)+'</div><div class="v">'+t.rows.length+'<small>条</small></div></div>'; }).join("")+
+    '</div><div class="small muted" style="margin-top:12px">教学管理系统以「班级 → 学生 → 签到会话/作业 → 签到记录/提交记录」的关系模型组织数据，共 6 张表；数据保存在内存中，刷新页面后回到初始状态，可用「导出 JSON / 导入 JSON」备份与恢复。</div></div></div>';
+
+  tables.forEach(function(t){
+    html+='<div class="panel"><div class="panel-hd"><span class="ttl">'+esc(t.name)+'</span><span class="sub">'+t.rows.length+' 行 · 显示前 '+Math.min(8,t.rows.length)+' 行</span>'+
+      '<div class="right"><button class="btn sm" data-act="exportTable" data-t="'+esc(t.name)+'">'+ICON.down+'导出本表</button></div></div>'+
+      '<div class="panel-bd tight"><div class="tbl-wrap"><table class="tbl"><thead><tr>'+t.cols.map(function(c){ return '<th>'+c+'</th>'; }).join("")+'</tr></thead><tbody>'+
+      (t.rows.length?t.rows.slice(0,8).map(function(r){
+        return '<tr>'+t.cols.map(function(c){ var v=r[c]; if(Array.isArray(v)) v=v.join("；"); return '<td class="'+(c==="sid"?"sid":"")+'">'+esc(v==null?"":v)+'</td>'; }).join("")+'</tr>';
+      }).join(""):'<tr><td colspan="'+t.cols.length+'" class="empty">空表</td></tr>')+
+      '</tbody></table></div>'+(t.rows.length>8?'<div class="overflow-note">仅显示前 8 行，共 '+t.rows.length+' 行</div>':"")+'</div></div>';
+  });
+  return html;
+}
+
+/* ============================================================
+ * 9. 表单：学生/班级编辑
+ * ========================================================== */
+function studentForm(st){
+  var cs='<select id="f_class">'+DB.classes.map(function(c){ return '<option value="'+c.id+'"'+((st&&st.classId===c.id)?" selected":"")+'>'+esc(c.name)+'</option>'; }).join("")+'</select>';
+  return '<div class="form-grid">'+
+    field("学号",'<input type="text" id="f_sid" value="'+esc(st?st.sid:"")+'" placeholder="如 2026811001">')+
+    field("姓名",'<input type="text" id="f_name" value="'+esc(st?st.name:"")+'" placeholder="如 张三">')+
+    field("班级",cs)+
+    field("状态",'<select id="f_status">'+["在册","休学","退学"].map(function(x){ return '<option'+(st&&st.status===x?" selected":"")+'>'+x+'</option>'; }).join("")+'</select>')+
+  '</div>';
+}
+function classForm(c){
+  return '<div class="form-grid">'+
+    field("班级名称",'<input type="text" id="c_name" value="'+esc(c?c.name:"")+'" placeholder="如 26级金融3班">')+
+    field("年级",'<input type="text" id="c_grade" value="'+esc(c?c.grade||"":"2026级")+'">')+
+    field("班主任",'<input type="text" id="c_teacher" value="'+esc(c?c.teacher||"":"")+'">')+
+    field("辅导员",'<input type="text" id="c_counselor" value="'+esc(c?c.counselor||"":"")+'">')+
+    field("教室",'<input type="text" id="c_room" value="'+esc(c?c.room||"":"")+'">')+
+  '</div>';
+}
+
+/* ============================================================
+ * 10. 事件
+ * ========================================================== */
+document.addEventListener("click",function(e){
+  var nav=e.target.closest("[data-nav]");
+  if(nav){ go(nav.getAttribute("data-nav")); return; }
+  var el=e.target.closest("[data-act]");
+  if(!el) return;
+  var act=el.getAttribute("data-act");
+  var id=el.getAttribute("data-id");
+  switch(act){
+    case "goHomework": go("homework"); break;
+    case "goCheckin": go("checkin"); break;
+    case "goStudents": go("students"); break;
+    case "openData": state.stu.tab="database"; go("students"); break;
+    case "printView": try{ window.print(); }catch(err){ toast("当前环境不支持打印，请使用导出","warn"); } break;
+
+    case "createSession": actCreateSession(); break;
+    case "toggleSession": actToggleSession(id); break;
+    case "delSession": actDelSession(id); break;
+    case "pickSession": state.activeSessionId=id; state.stat.sessionId=id; render(); break;
+    case "statFilter": state.stat.filter=el.getAttribute("data-f"); render(); break;
+    case "simSign": actSimSign(); break;
+    case "resetSim": state.lastSim=null; render(); break;
+    case "exportAttend": actExportAttend(); break;
+
+    case "createAssignment": actCreateAssignment(); break;
+    case "delAssignment": actDelAssignment(id); break;
+    case "pickAssignment": state.hwAssignmentId=id; state.hwResult=null; render(); break;
+    case "useLatest": if(DB.assignments.length){ state.hwAssignmentId=DB.assignments[DB.assignments.length-1].id; state.hwResult=null; render(); } else toast("暂无作业记录","warn"); break;
+    case "pickFiles": { var fi=$("#fileInput"); if(fi) fi.click(); break; }
+    case "pickFolder": { var di2=$("#folderInput"); if(di2) di2.click(); else toast("当前浏览器不支持文件夹上传","warn"); break; }
+    case "exportHw": actExportHw(); break;
+    case "markSubmit": actMarkSubmit(el.getAttribute("data-asg"),el.getAttribute("data-stu")); break;
+
+    case "stuTab": state.stu.tab=el.getAttribute("data-t"); render(); break;
+    case "addStudent": actAddStudent(); break;
+    case "editStudent": actEditStudent(id); break;
+    case "delStudent": actDelStudent(id); break;
+    case "importStudents": actImportStudents(); break;
+    case "addClass": actAddClass(); break;
+    case "editClass": actEditClass(id); break;
+    case "delClass": actDelClass(id); break;
+
+    case "exportAll": actExportAll(); break;
+    case "openImport": actImport(); break;
+    case "resetDemo": actResetDemo(); break;
+    case "exportTable": actExportTable(el.getAttribute("data-t")); break;
+  }
+});
+var searchTimer=null;
+document.addEventListener("input",function(e){
+  if(e.target && e.target.id==="stuQ"){
+    state.stu.q=e.target.value;
+    clearTimeout(searchTimer);
+    searchTimer=setTimeout(function(){ var v=state.stu.q; render(); var q=$("#stuQ"); if(q){ q.focus(); q.setSelectionRange(v.length,v.length); } },260);
+  }
+});
+document.addEventListener("change",function(e){
+  if(e.target && e.target.id==="stuClass"){ state.stu.classId=e.target.value; render(); }
+});
+$("#hamb").onclick=function(){ var sb=$("#sidebar"); var open=sb.classList.toggle("open"); $("#backdrop").classList.toggle("open",open); };
+$("#backdrop").onclick=function(){ $("#sidebar").classList.remove("open"); this.classList.remove("open"); };
+
+/* ---- 签到动作 ---- */
+function actCreateSession(){
+  if(!DB.classes.length){ toast("请先创建班级","warn"); return; }
+  var cid=$("#k_class").value;
+  var s={ id:uid("K"), code:newCode(), classId:cid, title:$("#k_title").value.trim()||"课堂签到",
+    date:$("#k_date").value||fmtDate(new Date()), start:$("#k_start").value||"08:00",
+    lateAfter:$("#k_late").value||"08:10", end:$("#k_end").value||"09:40",
+    status:"open", createdAt:fmtDT(new Date()) };
+  DB.sessions.push(s);
+  state.activeSessionId=s.id; state.stat.sessionId=s.id; state.lastSim=null;
+  saveDB(); render();
+  toast("签到会话已创建，二维码已生成","ok");
+}
+function actToggleSession(id){
+  var s=byId(DB.sessions,id); if(!s) return;
+  s.status = s.status==="open"?"closed":"open";
+  saveDB(); render();
+  toast(s.status==="open"?"已重新开启签到":"签到已结束","ok");
+}
+function actDelSession(id){
+  var s=byId(DB.sessions,id); if(!s) return;
+  confirmDialog("删除签到会话","将同时删除该会话的 "+DB.attendance.filter(function(a){ return a.sessionId===id; }).length+" 条签到记录，此操作不可撤销。",function(){
+    DB.sessions=DB.sessions.filter(function(x){ return x.id!==id; });
+    DB.attendance=DB.attendance.filter(function(a){ return a.sessionId!==id; });
+    if(state.activeSessionId===id) state.activeSessionId=null;
+    if(state.stat.sessionId===id) state.stat.sessionId=null;
+    if(state.lastSim && state.lastSim.sessionId===id) state.lastSim=null;
+    saveDB(); render(); toast("签到会话已删除","ok");
+  },true);
+}
+function actSimSign(){
+  var s=byId(DB.sessions,state.activeSessionId); if(!s){ toast("请先创建签到会话","warn"); return; }
+  var sel=$("#sim_student"); if(!sel){ toast("该班暂无学生","warn"); return; }
+  var stuId=sel.value; var st=byId(DB.students,stuId); if(!st) return;
+  var mode=$("#sim_status")?$("#sim_status").value:"auto";
+  var now=new Date();
+  var hhmm=pad2(now.getHours())+":"+pad2(now.getMinutes());
+  var status="present";
+  if(mode==="auto"){ status = (hhmm > (s.lateAfter||"08:10")) ? "late" : "present"; }
+  else status=mode;
+  var cls=byId(DB.classes,s.classId);
+  var rec=DB.attendance.filter(function(a){ return a.sessionId===s.id && a.studentId===stuId; })[0];
+  var time=fmtTime(now);
+  if(rec){ rec.status=status; rec.time=time; rec.method="扫码"; }
+  else DB.attendance.push({ id:uid("A"), sessionId:s.id, studentId:stuId, status:status, time:time, method:"扫码" });
+  state.lastSim={ sessionId:s.id, name:st.name, sid:st.sid, cls:cls?cls.name:"—", status:{present:"正常",late:"迟到",leave:"请假",absent:"缺勤"}[status], date:s.date, time:time };
+  saveDB(); render();
+}
+function actExportAttend(){
+  var s=byId(DB.sessions,state.stat.sessionId); if(!s){ toast("请选择会话","warn"); return; }
+  var st=attendanceStats(s); var cl=byId(DB.classes,s.classId);
+  var rows=[["签到统计",s.title+"（"+(cl?cl.name:"")+"）"],["日期",s.date+" "+s.start+"-"+s.end],["签到码",s.code],
+    ["应到",st.roster.length],["实到（含迟到）",st.attended],["正常",st.present],["迟到",st.late],["请假",st.leave],["缺勤",st.absent],["签到率",fmtPct(st.rate)],[],
+    ["学号","姓名","班级","状态","签到时间","方式"]];
+  st.roster.slice().sort(function(a,b){ return a.sid<b.sid?-1:1; }).forEach(function(sd){
+    var r=st.rec[sd.id]; var stt=!r?"absent":r.status;
+    rows.push([sd.sid,sd.name,cl?cl.name:"",{present:"已签到",late:"迟到",leave:"请假",absent:"缺勤"}[stt], r?r.time:"", r?r.method:"", ]);
+  });
+  download("签到统计_"+s.date+"_"+((cl?cl.name:"")||"")+".csv",toCSV(rows));
+}
+function actExportHw(){
+  var a=state.hwAssignmentId?byId(DB.assignments,state.hwAssignmentId):null; if(!a){ toast("请先选择作业","warn"); return; }
+  var cl=byId(DB.classes,a.classId);
+  var useResult=state.hwResult && state.hwResult.assignmentId===a.id;
+  var st=useResult?state.hwResult.stat:assignmentStats(a);
+  var roster=st.students;
+  var rows=[["作业统计",a.title+"（"+(cl?cl.name:"")+"）"],["截止时间",a.deadline],
+    ["应交",st.total],["实交",st.submittedCount],["未交",st.total-st.submittedCount],["提交率",fmtPct(st.rate)],[],
+    ["学号","姓名","班级","状态","匹配方式","文件"]];
+  roster.slice().sort(function(x,y){ return x.sid<y.sid?-1:1; }).forEach(function(sd){
+    var hit=st.hits[sd.id];
+    rows.push([sd.sid,sd.name,cl?cl.name:"",hit?"已提交":"未提交",hit?hit.by:"",hit?hit.files.join("；"):""]);
+  });
+  download("作业统计_"+a.title+".csv",toCSV(rows));
+}
+function actMarkSubmit(asgId,stuId){
+  var a=byId(DB.assignments,asgId); if(!a) return;
+  if(DB.submissions.some(function(s){ return s.assignmentId===asgId && s.studentId===stuId; })){ toast("该学生已标记为已提交","warn"); return; }
+  var st=byId(DB.students,stuId);
+  DB.submissions.push({ id:uid("B"), assignmentId:asgId, studentId:stuId, files:["（教师手动标记）"], matchedBy:"手动标记", time:fmtDT(new Date()) });
+  if(state.hwResult && state.hwResult.assignmentId===asgId){
+    var stat=state.hwResult.stat;
+    stat.hits[stuId]={student:st,by:"手动标记",files:["（教师手动标记）"]};
+    stat.submitted=stat.students.filter(function(s){ return !!stat.hits[s.id]; });
+    stat.missing=stat.students.filter(function(s){ return !stat.hits[s.id]; });
+    stat.submittedCount=stat.submitted.length;
+    stat.missingCount=stat.missing.length;
+    stat.rate=pct(stat.submittedCount,stat.total);
+  }
+  saveDB(); render(); toast("已标记 "+st.name+" 为已提交","ok");
+}
+
+/* ---- 作业动作 ---- */
+function actCreateAssignment(){
+  if(!DB.classes.length){ toast("请先创建班级","warn"); return; }
+  var a={ id:uid("W"), classId:$("#w_class").value, title:($("#w_title").value.trim()|| "未命名作业"), deadline:($("#w_deadline").value.trim()||fmtDate(new Date())+" 23:59"), createdAt:fmtDT(new Date()), source:"手动创建" };
+  DB.assignments.push(a);
+  state.hwAssignmentId=a.id; state.hwResult=null;
+  saveDB(); render(); toast("作业已创建，可上传学生提交文件","ok");
+}
+function actDelAssignment(id){
+  var a=byId(DB.assignments,id); if(!a) return;
+  var n=DB.submissions.filter(function(s){ return s.assignmentId===id; }).length;
+  confirmDialog("删除作业","将同时删除该作业的 "+n+" 条提交记录，此操作不可撤销。",function(){
+    DB.assignments=DB.assignments.filter(function(x){ return x.id!==id; });
+    DB.submissions=DB.submissions.filter(function(s){ return s.assignmentId!==id; });
+    if(state.hwAssignmentId===id){ state.hwAssignmentId=null; state.hwResult=null; }
+    saveDB(); render(); toast("作业已删除","ok");
+  },true);
+}
+
+/* ---- 学生/班级动作 ---- */
+function actAddStudent(){
+  if(!DB.classes.length){ toast("请先创建班级","warn"); return; }
+  openModal({ title:"新增学生", body:studentForm(null), actions:[
+    {label:"取消",kind:"ghost"},
+    {label:"保存",kind:"primary",onClick:function(){
+      var sid=$("#f_sid").value.trim(), name=$("#f_name").value.trim();
+      if(!sid || !name){ toast("学号与姓名不能为空","err"); return false; }
+      if(bySid(sid)){ toast("学号已存在：存在重复","err"); return false; }
+      DB.students.push({ id:uid("S"), sid:sid, name:name, classId:$("#f_class").value, status:$("#f_status").value, createdAt:fmtDT(new Date()) });
+      saveDB(); render(); toast("已新增学生 "+name,"ok");
+    }}
+  ]});
+}
+function actEditStudent(id){
+  var st=byId(DB.students,id); if(!st) return;
+  openModal({ title:"编辑学生 · "+st.name, body:studentForm(st), actions:[
+    {label:"取消",kind:"ghost"},
+    {label:"保存",kind:"primary",onClick:function(){
+      var sid=$("#f_sid").value.trim(), name=$("#f_name").value.trim();
+      if(!sid || !name){ toast("学号与姓名不能为空","err"); return false; }
+      if(DB.students.some(function(s){ return s.sid===sid && s.id!==id; })){ toast("学号已被其他学生使用","err"); return false; }
+      st.sid=sid; st.name=name; st.classId=$("#f_class").value; st.status=$("#f_status").value;
+      saveDB(); render(); toast("已保存","ok");
+    }}
+  ]});
+}
+function actDelStudent(id){
+  var st=byId(DB.students,id); if(!st) return;
+  confirmDialog("删除学生","将删除「"+st.name+"」及其签到/提交记录，此操作不可撤销。",function(){
+    DB.students=DB.students.filter(function(s){ return s.id!==id; });
+    DB.attendance=DB.attendance.filter(function(a){ return a.studentId!==id; });
+    DB.submissions=DB.submissions.filter(function(b){ return b.studentId!==id; });
+    saveDB(); render(); toast("已删除学生 "+st.name,"ok");
+  },true);
+}
+function actImportStudents(){
+  if(!DB.classes.length){ toast("请先创建班级","warn"); return; }
+  openModal({ title:"批量导入学生", body:
+    '<div class="small muted">每行一名学生，格式：<b>学号,姓名</b>（也支持空格或制表符分隔）。将导入到下方所选班级。</div>'+
+    '<div style="margin-top:12px">'+field("导入到班级",'<select id="imp_class">'+DB.classes.map(function(c){ return '<option value="'+c.id+'">'+esc(c.name)+'</option>'; }).join("")+'</select>')+'</div>'+
+    '<div style="margin-top:12px">'+field("学生名单",'<textarea id="imp_text" rows="8" placeholder="2026811001,张三&#10;2026811002,李四"></textarea>')+'</div>',
+    actions:[
+      {label:"取消",kind:"ghost"},
+      {label:"导入",kind:"primary",onClick:function(){
+        var cid=$("#imp_class").value; var txt=$("#imp_text").value||"";
+        var lines=txt.split(/\r?\n/).map(function(x){ return x.trim(); }).filter(Boolean);
+        var ok=0,skip=0;
+        lines.forEach(function(ln){
+          var parts=ln.split(/[,\t\s]+/).filter(Boolean);
+          if(parts.length<2){ skip++; return; }
+          var sid=null,name=null;
+          if(/^\d{6,}$/.test(parts[0])){ sid=parts[0]; name=parts[1]; }
+          else if(/^\d{6,}$/.test(parts[1])){ sid=parts[1]; name=parts[0]; }
+          else { skip++; return; }
+          if(bySid(sid)){ skip++; return; }
+          DB.students.push({ id:uid("S"), sid:sid, name:name, classId:cid, status:"在册", createdAt:fmtDT(new Date()) });
+          ok++;
+        });
+        saveDB(); render();
+        toast("导入完成：成功 "+ok+" 人，跳过 "+skip+" 行", ok?"ok":"warn");
+      }}
+    ]});
+}
+function actAddClass(){
+  openModal({ title:"新增班级", body:classForm(null), actions:[
+    {label:"取消",kind:"ghost"},
+    {label:"保存",kind:"primary",onClick:function(){
+      var name=$("#c_name").value.trim();
+      if(!name){ toast("班级名称不能为空","err"); return false; }
+      DB.classes.push({ id:uid("C"), name:name, grade:$("#c_grade").value.trim(), teacher:$("#c_teacher").value.trim(), counselor:$("#c_counselor").value.trim(), room:$("#c_room").value.trim(), createdAt:fmtDT(new Date()) });
+      saveDB(); render(); toast("已新增班级 "+name,"ok");
+    }}
+  ]});
+}
+function actEditClass(id){
+  var c=byId(DB.classes,id); if(!c) return;
+  openModal({ title:"编辑班级 · "+c.name, body:classForm(c), actions:[
+    {label:"取消",kind:"ghost"},
+    {label:"保存",kind:"primary",onClick:function(){
+      var name=$("#c_name").value.trim();
+      if(!name){ toast("班级名称不能为空","err"); return false; }
+      c.name=name; c.grade=$("#c_grade").value.trim(); c.teacher=$("#c_teacher").value.trim(); c.counselor=$("#c_counselor").value.trim(); c.room=$("#c_room").value.trim();
+      saveDB(); render(); toast("已保存","ok");
+    }}
+  ]});
+}
+function actDelClass(id){
+  var c=byId(DB.classes,id); if(!c) return;
+  var n=classStudents(id).length;
+  confirmDialog("删除班级","将删除班级「"+c.name+"」及其中 "+n+" 名学生、相关签到与作业记录，此操作不可撤销。",function(){
+    var stIds=DB.students.filter(function(s){ return s.classId===id; }).map(function(s){ return s.id; });
+    var sesIds=DB.sessions.filter(function(s){ return s.classId===id; }).map(function(s){ return s.id; });
+    var asgIds=DB.assignments.filter(function(a){ return a.classId===id; }).map(function(a){ return a.id; });
+    DB.classes=DB.classes.filter(function(x){ return x.id!==id; });
+    DB.students=DB.students.filter(function(s){ return s.classId!==id; });
+    DB.sessions=DB.sessions.filter(function(s){ return s.classId!==id; });
+    DB.assignments=DB.assignments.filter(function(a){ return a.classId!==id; });
+    DB.attendance=DB.attendance.filter(function(a){ return sesIds.indexOf(a.sessionId)<0 && stIds.indexOf(a.studentId)<0; });
+    DB.submissions=DB.submissions.filter(function(b){ return asgIds.indexOf(b.assignmentId)<0 && stIds.indexOf(b.studentId)<0; });
+    if(sesIds.indexOf(state.activeSessionId)>=0) state.activeSessionId=null;
+    if(asgIds.indexOf(state.hwAssignmentId)>=0){ state.hwAssignmentId=null; state.hwResult=null; }
+    saveDB(); render(); toast("已删除班级 "+c.name,"ok");
+  },true);
+}
+
+/* ---- 数据管理 ---- */
+function actExportAll(){
+  download("教学管理系统数据.json",JSON.stringify(DB,null,2),"application/json;charset=utf-8");
+}
+function actExportTable(name){
+  var map={"classes 班级":DB.classes,"students 学生":DB.students,"sessions 签到会话":DB.sessions,"attendance 签到记录":DB.attendance,"assignments 作业":DB.assignments,"submissions 提交记录":DB.submissions};
+  var rows=map[name]; if(!rows) return;
+  var keys=Object.keys(rows[0]||{});
+  if(!keys.length){ toast("空表，无可导出内容","warn"); return; }
+  var out=[keys].concat(rows.map(function(r){ return keys.map(function(k){ var v=r[k]; return Array.isArray(v)?v.join("；"):v; }); }));
+  download(name.replace(/\s+/g,"_")+".csv",toCSV(out));
+}
+function actImport(){
+  var inp=$("#jsonInput");
+  inp.value="";
+  inp.onchange=function(){
+    var f=this.files && this.files[0]; if(!f) return;
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        var d=JSON.parse(reader.result);
+        if(!d || !Array.isArray(d.students) || !Array.isArray(d.classes)) throw new Error("结构不符");
+        DB=d; DB.seq=DB.seq||{};
+        ["classes","students","sessions","attendance","assignments","submissions"].forEach(function(k){ if(!Array.isArray(DB[k])) DB[k]=[]; });
+        state.activeSessionId=null; state.hwAssignmentId=null; state.hwResult=null; state.lastSim=null; state.stat.sessionId=null;
+        saveDB(); render(); toast("数据导入成功","ok");
+      }catch(err){ toast("导入失败：文件格式不正确","err"); }
+    };
+    reader.readAsText(f,"utf-8");
+  };
+  inp.click();
+}
+function actResetDemo(){
+  confirmDialog("恢复示例数据","将清空当前全部数据并重新载入示例班级、签到与作业数据，此操作不可撤销。",function(){
+    seedDemo(); state.activeSessionId=null; state.hwAssignmentId=null; state.hwResult=null; state.lastSim=null; state.stat.sessionId=null;
+    state.stu={classId:"all",q:"",tab:"students"}; state.stat={sessionId:null,filter:"all"};
+    saveDB(); render(); toast("已恢复示例数据","ok");
+  },true);
+}
+
+/* ============================================================
+ * 11. 启动
+ * ========================================================== */
+function boot(){
+  seedDemo();
+  ["classes","students","sessions","attendance","assignments","submissions"].forEach(function(k){ if(!Array.isArray(DB[k])) DB[k]=[]; });
+  if(DB.sessions.length) state.activeSessionId=DB.sessions[DB.sessions.length-1].id;
+  render();
+}
+boot();
+})();
+</script>
+</body>
+</html>
